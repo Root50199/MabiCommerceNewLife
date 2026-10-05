@@ -1096,7 +1096,7 @@ public partial class MainWindow : Window
         RewardModifiersFor(letter ?? SelectedGuaranteeLetter, assumeHeld: true));
     }
 
-    // The same per-unit sale price the Auto search uses for this destination.
+    // The per-unit sale price Auto, Load Profit and Sell share: the entered quote, else the default estimate.
     private decimal? AutoQuoteSalePrice(GoodsEntry product, int destinationId)
     {
         if (!_quotesByProduct.TryGetValue(product.Id, out var quotes)) return null;
@@ -1769,6 +1769,20 @@ public partial class MainWindow : Window
         // The dropdown toggle consumes the click, so select the row it belongs to explicitly.
         if (sender is FrameworkElement { DataContext: GoodsEntry product } && !ReferenceEquals(ProductList.SelectedItem, product))
             ProductList.SelectedItem = product;
+    }
+
+    // A focused closed ComboBox changes its selection on mouse wheel, which silently switched the active rotating
+    // offer while scrolling the goods list. Forward the wheel to the list instead.
+    private void RotationPicker_PreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+    {
+        if (sender is not ComboBox { IsDropDownOpen: false } comboBox) return;
+        e.Handled = true;
+        if (System.Windows.Media.VisualTreeHelper.GetParent(comboBox) is not UIElement parent) return;
+        parent.RaiseEvent(new System.Windows.Input.MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+        {
+            RoutedEvent = UIElement.MouseWheelEvent,
+            Source = comboBox
+        });
     }
 
     private void RotationPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -3283,7 +3297,7 @@ public partial class MainWindow : Window
             {
                 var quote = _quotesByProduct[line.Product.Id]
                     .FirstOrDefault(item => item.PostId == post.Id);
-                if (quote is null || quote.DestinationPrice <= 0)
+                if (quote is null || AutoQuoteSalePrice(line.Product, post.Id) is not decimal salePrice)
                 {
                     canSellAll = false;
                     break;
@@ -3292,7 +3306,7 @@ public partial class MainWindow : Window
                 priceLines.Add(new CargoDispositionPriceLine(
                     line.Product.Name,
                     line.Quantity,
-                    EffectiveSalePrice(line.Product, quote.DestinationPrice),
+                    salePrice,
                     quote.IsManualPrice));
             }
             if (canSellAll)
@@ -3349,15 +3363,16 @@ public partial class MainWindow : Window
         destinationName = _posts.FirstOrDefault(post => post.Id == destinationId)?.Name ?? "destination";
         error = string.Empty;
         var saleLines = new List<ProfitLine>();
+        var salePrices = new Dictionary<int, decimal>();
         foreach (var line in cargo.Values)
         {
-            var quote = _quotesByProduct[line.Product.Id].FirstOrDefault(item => item.PostId == destinationId);
-            if (quote is null || quote.DestinationPrice <= 0)
+            if (AutoQuoteSalePrice(line.Product, destinationId) is not decimal salePrice)
             {
                 error = $"Enter a positive sale price for {line.Product.Name} at {destinationName} before selling.";
                 return false;
             }
-            saleLines.Add(new ProfitLine(line.Quantity, line.UnitBuyPrice, EffectiveSalePrice(line.Product, quote.DestinationPrice)));
+            salePrices[line.Product.Id] = salePrice;
+            saleLines.Add(new ProfitLine(line.Quantity, line.UnitBuyPrice, salePrice));
         }
 
         if (!TryRead(DucatsInput, out var currentDucats) || currentDucats < 0)
@@ -3368,7 +3383,7 @@ public partial class MainWindow : Window
 
         saleProceeds = ProfitCalculator.Calculate(saleLines).GrossSale;
         soldGoods = cargo.Values.Sum(line => line.Quantity);
-        RecordTradeHistory(cargo, destinationId, destinationName, saleProceeds);
+        RecordTradeHistory(cargo, salePrices, destinationName, saleProceeds);
         var weeklyStockSold = cargo.Values.Any(line => ModeOf(line.Product) != GoodsMode.Trade);
         cargo.Clear();
         if (weeklyStockSold) SaveWeeklyStock();
@@ -3383,19 +3398,14 @@ public partial class MainWindow : Window
     public TradeHistory TradeHistory => _tradeHistory ??= TradeHistory.Load(TradeHistoryPath);
 
     // Rewards use the sold cargo's own mode, so a market-switch sale still logs its Group or Barter bonuses and letter.
-    private void RecordTradeHistory(Dictionary<int, CargoLine> cargo, int destinationId, string destinationName, decimal saleProceeds)
+    private void RecordTradeHistory(Dictionary<int, CargoLine> cargo, IReadOnlyDictionary<int, decimal> salePrices,
+        string destinationName, decimal saleProceeds)
     {
         if (cargo.Count == 0) return;
         var mode = ModeOf(cargo.Values.First().Product);
         var isBarter = mode == GoodsMode.Barter;
-        var rewardLines = new List<RewardLine>();
-        foreach (var line in cargo.Values)
-        {
-            var quote = _quotesByProduct[line.Product.Id].FirstOrDefault(item => item.PostId == destinationId);
-            if (quote is null) return;
-            rewardLines.Add(new RewardLine(line.Quantity, line.UnitBuyPrice, EffectiveSalePrice(line.Product, quote.DestinationPrice),
-                line.Product.Weight, line.Product.IsBarter ? 0m : PurchaseDiscountPercentFor(line.Product.PostId)));
-        }
+        var rewardLines = cargo.Values.Select(line => new RewardLine(line.Quantity, line.UnitBuyPrice, salePrices[line.Product.Id],
+            line.Product.Weight, line.Product.IsBarter ? 0m : PurchaseDiscountPercentFor(line.Product.PostId))).ToList();
         var letter = _plannerPreferences.ActiveGuaranteeLetterByMode.TryGetValue(mode.ToString(), out var letterName)
             && Enum.TryParse<GuaranteeLetterKind>(letterName, out var kind) ? kind : GuaranteeLetterKind.None;
         var totals = ModifierTotals(mode == GoodsMode.Group);
@@ -3608,13 +3618,11 @@ public partial class MainWindow : Window
             var missingQuote = false;
             foreach (var line in ActiveCargo.Values)
             {
-                var quote = _quotesByProduct[line.Product.Id].FirstOrDefault(entry => entry.PostId == total.PostId);
-                if (quote is null || quote.DestinationPrice <= 0)
+                if (AutoQuoteSalePrice(line.Product, total.PostId) is not decimal salePrice)
                 {
                     missingQuote = true;
                     break;
                 }
-                var salePrice = EffectiveSalePrice(line.Product, quote.DestinationPrice);
                 profitLines.Add(new ProfitLine(line.Quantity, line.UnitBuyPrice, salePrice));
                 rewardLines.Add(new RewardLine(line.Quantity, line.UnitBuyPrice, salePrice, line.Product.Weight,
                     line.Product.IsBarter ? 0m : PurchaseDiscountPercentFor(line.Product.PostId)));

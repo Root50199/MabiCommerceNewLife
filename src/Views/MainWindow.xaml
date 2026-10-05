@@ -299,7 +299,7 @@
                             </Style>
                         </local:OutlinedTextBlock.Style>
                     </local:OutlinedTextBlock>
-                    <ComboBox Height="22" Margin="0,0,6,0" HorizontalAlignment="Stretch" ItemsSource="{Binding RotationAlternatives}" SelectedItem="{Binding Mode=OneWay}" Visibility="{Binding HasRotationAlternatives, Converter={StaticResource BooleanToVisibility}}" Background="#B2241C12" Padding="3,0,18,0" SelectionChanged="RotationPicker_SelectionChanged" PreviewMouseLeftButtonDown="RotationPicker_PreviewMouseLeftButtonDown" ToolTip="{Binding RotationHistoryText}" ToolTipService.ShowDuration="60000">
+                    <ComboBox Height="22" Margin="0,0,6,0" HorizontalAlignment="Stretch" ItemsSource="{Binding RotationAlternatives}" SelectedItem="{Binding Mode=OneWay}" Visibility="{Binding HasRotationAlternatives, Converter={StaticResource BooleanToVisibility}}" Background="#B2241C12" Padding="3,0,18,0" SelectionChanged="RotationPicker_SelectionChanged" PreviewMouseLeftButtonDown="RotationPicker_PreviewMouseLeftButtonDown" PreviewMouseWheel="RotationPicker_PreviewMouseWheel" ToolTip="{Binding RotationHistoryText}" ToolTipService.ShowDuration="60000">
                         <ComboBox.Style>
                             <Style TargetType="ComboBox" BasedOn="{StaticResource GameCombo}">
                                 <Style.Triggers>
