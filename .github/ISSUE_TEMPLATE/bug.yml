@@ -1,0 +1,27 @@
+name: Bug report
+description: Report a problem with the app
+body:
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: 0.1.0-beta
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the commerce mode, goods and destination if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
