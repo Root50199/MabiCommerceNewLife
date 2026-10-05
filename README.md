@@ -4,6 +4,24 @@ A Windows desktop planner for Mabinogi commerce (C# / WPF, .NET 9). Enter or sca
 
 The window recreates the in-game Trading Post using art, icons and fonts taken from the game client.
 
+## Screenshots
+
+**Manual**
+
+![Manual view](images/ManualView.jpg)
+
+**Auto**
+
+![Auto view](images/AutoView.png)
+
+**Barter**
+
+![Barter view](images/BarterView.png)
+
+**Load Profit**
+
+![Load Profit view](images/ProfitView.png)
+
 ## Features
 
 - **Trade, Group and Barter** pages, each with its own goods list, transport load and stock.
@@ -18,6 +36,7 @@ The window recreates the in-game Trading Post using art, icons and fonts taken f
 - **Trade history** (in Settings): a log of every load sold with the Sell button, with running totals of raw Gold, Ducats and converted total Gold.
 
 Settings and prices are saved in `%LOCALAPPDATA%\MabiCommerceNewLife`.
+New profiles start with editable reference material and guarantee-letter values; existing saved values are kept.
 
 ## What it does not do
 

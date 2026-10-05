@@ -9,8 +9,8 @@
     <AssemblyName>MabiCommerceNewLife</AssemblyName>
     <RootNamespace>MabiCommerceNewLife</RootNamespace>
     <EnableDefaultItems>false</EnableDefaultItems>
-    <Version>0.1.0</Version>
-    <InformationalVersion>0.1.0-beta</InformationalVersion>
+    <Version>0.1.1</Version>
+    <InformationalVersion>0.1.1-beta</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Product>MabiCommerce NewLife</Product>
     <Copyright>Copyright (c) 2026 Root50199</Copyright>
