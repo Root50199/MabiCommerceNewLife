@@ -16,6 +16,7 @@
     <Compile Include="..\src\Planning\GroupStockResetSchedule.cs" Link="GroupStockResetSchedule.cs" />
     <Compile Include="..\src\Planning\BarterRotationLog.cs" Link="BarterRotationLog.cs" />
     <Compile Include="..\src\Planning\BarterShoppingList.cs" Link="BarterShoppingList.cs" />
+    <Compile Include="..\src\Planning\TradeHistory.cs" Link="TradeHistory.cs" />
     <Compile Include="..\src\Ocr\PriceListOcrParser.cs" Link="PriceListOcrParser.cs" />
     <Compile Include="..\src\Ocr\PriceListOcrService.cs" Link="PriceListOcrService.cs" />
     <Content Include="..\Data\regional-route-distances.json" Link="regional-route-distances.json" CopyToOutputDirectory="PreserveNewest" />

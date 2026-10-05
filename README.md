@@ -15,6 +15,7 @@ The window recreates the in-game Trading Post using art, icons and fonts taken f
 - **Modifiers**: Commerce Mastery, Letters of Guarantee, merchant ratings, accessory enchants, speed buffs and other bonuses.
 - **Transports**: choose which you own; partner and Alpaca variants are optional.
 - **Weekly reset**: Group and Barter stock can refill automatically at the Thursday reset.
+- **Trade history** (in Settings): a log of every load sold with the Sell button, with running totals of raw Gold, Ducats and converted total Gold.
 
 Settings and prices are saved in `%LOCALAPPDATA%\MabiCommerceNewLife`.
 

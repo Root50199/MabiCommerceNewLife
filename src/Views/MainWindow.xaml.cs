@@ -42,6 +42,8 @@ public partial class MainWindow : Window
     private BarterMaterialsWindow? _barterMaterialsWindow;
     private InventoryWindow? _inventoryWindow;
     private ShoppingListWindow? _shoppingListWindow;
+    private TradeHistoryWindow? _tradeHistoryWindow;
+    private TradeHistory? _tradeHistory;
     private readonly HashSet<int> _availableTransportIds = [1];
     private readonly IReadOnlyDictionary<(int SourceId, int DestinationId), decimal> _regionalRouteHandcartMinutes =
         RegionalRouteEstimates.LoadHandcartMinutes(Path.Combine(AppContext.BaseDirectory, "Data", "regional-route-distances.json"));
@@ -121,7 +123,7 @@ public partial class MainWindow : Window
             "./#NanumGothic");
         TradingPostFrameImage.Source = LoadImage("Data/CommerceUI/TradingPostFrameCustom.png");
         SettingsButtonImage.Source = LoadImage("Data/CommerceUI/Settings.png");
-        Resources["SettingsMenuBackgroundArt"] = BuildSettingsMenuBackground(10);
+        Resources["SettingsMenuBackgroundArt"] = BuildSettingsMenuBackground(11);
         Resources["BracketTopLeftArt"] = LoadImage("Data/CommerceUI/BracketTopLeft.png");
         Resources["BracketTopRightArt"] = LoadImage("Data/CommerceUI/BracketTopRight.png");
         Resources["BracketBottomLeftArt"] = LoadImage("Data/CommerceUI/BracketBottomLeft.png");
@@ -2240,7 +2242,7 @@ public partial class MainWindow : Window
         if (_initializing) return;
         var enabled = AlwaysOnTopCheckBox.IsChecked == true;
         Topmost = enabled;
-        foreach (var child in new Window?[] { _shoppingListWindow, _barterMaterialsWindow, _inventoryWindow })
+        foreach (var child in new Window?[] { _shoppingListWindow, _barterMaterialsWindow, _inventoryWindow, _tradeHistoryWindow })
             if (child is not null) child.Topmost = enabled;
         if (_plannerPreferences.AlwaysOnTop == enabled) return;
         _plannerPreferences.AlwaysOnTop = enabled;
@@ -3366,11 +3368,79 @@ public partial class MainWindow : Window
 
         saleProceeds = ProfitCalculator.Calculate(saleLines).GrossSale;
         soldGoods = cargo.Values.Sum(line => line.Quantity);
+        RecordTradeHistory(cargo, destinationId, destinationName, saleProceeds);
         var weeklyStockSold = cargo.Values.Any(line => ModeOf(line.Product) != GoodsMode.Trade);
         cargo.Clear();
         if (weeklyStockSold) SaveWeeklyStock();
         DucatsInput.Text = FormatDucats(currentDucats + saleProceeds);
         return true;
+    }
+
+    private static string TradeHistoryPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "MabiCommerceNewLife", "trade-history.json");
+
+    public TradeHistory TradeHistory => _tradeHistory ??= TradeHistory.Load(TradeHistoryPath);
+
+    // Rewards use the sold cargo's own mode, so a market-switch sale still logs its Group or Barter bonuses and letter.
+    private void RecordTradeHistory(Dictionary<int, CargoLine> cargo, int destinationId, string destinationName, decimal saleProceeds)
+    {
+        if (cargo.Count == 0) return;
+        var mode = ModeOf(cargo.Values.First().Product);
+        var isBarter = mode == GoodsMode.Barter;
+        var rewardLines = new List<RewardLine>();
+        foreach (var line in cargo.Values)
+        {
+            var quote = _quotesByProduct[line.Product.Id].FirstOrDefault(item => item.PostId == destinationId);
+            if (quote is null) return;
+            rewardLines.Add(new RewardLine(line.Quantity, line.UnitBuyPrice, EffectiveSalePrice(line.Product, quote.DestinationPrice),
+                line.Product.Weight, line.Product.IsBarter ? 0m : PurchaseDiscountPercentFor(line.Product.PostId)));
+        }
+        var letter = _plannerPreferences.ActiveGuaranteeLetterByMode.TryGetValue(mode.ToString(), out var letterName)
+            && Enum.TryParse<GuaranteeLetterKind>(letterName, out var kind) ? kind : GuaranteeLetterKind.None;
+        var totals = ModifierTotals(mode == GoodsMode.Group);
+        var modifiers = new RewardModifiers(_plannerPreferences.CommerceMasteryRank, letter, GoldPerDucat, -1,
+            GetGuaranteeLetterMarketValue(letter) ?? 0, totals.DucatPercent, totals.ProfitPercent, totals.MerchantRatingPercent);
+        var reward = CommerceRewardModel.Calculate(rewardLines, isBarter, modifiers);
+        var goods = cargo.Values.Select(line => new TradeHistoryGood(line.Product.Name, line.Quantity)).ToList();
+        TradeHistory.Add(new TradeHistoryEntry(DateTime.Now, ModeName(mode), destinationName, goods, saleProceeds,
+            reward.RawGold, reward.DucatGain, reward.TotalGold, reward.GoldPerDucat,
+            reward.LetterApplied ? reward.Letter?.Name : null));
+        SaveTradeHistory();
+        _tradeHistoryWindow?.Refresh();
+    }
+
+    public void SaveTradeHistory()
+    {
+        try
+        {
+            TradeHistory.Save(TradeHistoryPath);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            SetStatus($"Trade history could not be saved: {exception.Message}", true);
+        }
+    }
+
+    private void TradeHistoryButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_tradeHistoryWindow is { IsLoaded: true } existing)
+        {
+            existing.Refresh();
+            existing.Activate();
+            return;
+        }
+        var window = new TradeHistoryWindow(this);
+        var workArea = SystemParameters.WorkArea;
+        var left = Left + ActualWidth + 4;
+        if (left + window.Width > workArea.Right) left = Left - window.Width - 4;
+        window.Left = Math.Max(workArea.Left, Math.Min(left, workArea.Right - window.Width));
+        window.Top = Math.Max(workArea.Top, Math.Min(Top, workArea.Bottom - window.Height));
+        window.Topmost = Topmost;
+        TopmostGuard.Watch(window);
+        window.Closed += (_, _) => _tradeHistoryWindow = null;
+        _tradeHistoryWindow = window;
+        window.Show();
     }
 
     public void ApplyDetectedSale(int productId, int soldQuantity)
@@ -3885,7 +3955,7 @@ public partial class MainWindow : Window
             SavePlannerPreferences();
         }
 
-        foreach (var window in new Window?[] { _shoppingListWindow, _barterMaterialsWindow, _inventoryWindow })
+        foreach (var window in new Window?[] { _shoppingListWindow, _barterMaterialsWindow, _inventoryWindow, _tradeHistoryWindow })
         {
             if (window is not { IsLoaded: true }) continue;
             window.WindowState = WindowState.Normal;

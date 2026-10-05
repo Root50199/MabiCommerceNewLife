@@ -117,7 +117,7 @@ public partial class ShoppingListWindow : Window
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
-    private static Brush CreateTileBrush(string fileName)
+    internal static Brush CreateTileBrush(string fileName)
     {
         try
         {

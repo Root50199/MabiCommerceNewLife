@@ -498,8 +498,8 @@
                 <Image x:Name="SettingsButtonImage" Width="20" Height="20" RenderOptions.BitmapScalingMode="NearestNeighbor" />
             </Button>
             <Popup x:Name="SettingsPopup" Placement="Bottom" HorizontalOffset="-246" VerticalOffset="2" StaysOpen="True" AllowsTransparency="True" PopupAnimation="Fade">
-                <Canvas Width="270" Height="442" ClipToBounds="True">
-                    <Image Canvas.Left="0" Canvas.Top="0" Source="{DynamicResource SettingsMenuBackgroundArt}" Width="270" Height="442" Stretch="Fill" />
+                <Canvas Width="270" Height="474" ClipToBounds="True">
+                    <Image Canvas.Left="0" Canvas.Top="0" Source="{DynamicResource SettingsMenuBackgroundArt}" Width="270" Height="474" Stretch="Fill" />
                     <Grid Canvas.Left="12" Canvas.Top="4" Width="252" Height="40">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="18"/></Grid.ColumnDefinitions>
                         <Thumb Grid.ColumnSpan="2" Background="Transparent" DragDelta="SettingsPopup_DragDelta" ToolTip="Drag to move Settings">
@@ -675,7 +675,8 @@
                             <CheckBox x:Name="ScanDebugModeCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="ScanDebugMode_Changed" Unchecked="ScanDebugMode_Changed" ToolTip="Save auto-accept-worthy scan captures and OCR text for later verification" />
                         </StackPanel>
                     </Grid>
-                    <Button x:Name="ResetWindowPositionsButton" Canvas.Left="65" Canvas.Top="392" Width="140" Height="22" Click="ResetWindowPositions_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="8" FontWeight="Bold" Cursor="Hand" Content="RESET WINDOW POSITIONS" ToolTipService.ShowDuration="20000" ToolTip="Failsafe for a window stuck off screen: centers the planner on the main screen, moves Settings and any open helper windows back with it, and returns the route map overlay to its default size in the middle of the main screen." />
+                    <Button x:Name="TradeHistoryButton" Canvas.Left="65" Canvas.Top="392" Width="140" Height="22" Click="TradeHistoryButton_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="8" FontWeight="Bold" Cursor="Hand" Content="TRADE HISTORY" ToolTipService.ShowDuration="20000" ToolTip="Log of every load sold with the Sell button, with running totals of raw Gold, Ducats and converted total Gold." />
+                    <Button x:Name="ResetWindowPositionsButton" Canvas.Left="65" Canvas.Top="422" Width="140" Height="22" Click="ResetWindowPositions_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="8" FontWeight="Bold" Cursor="Hand" Content="RESET WINDOW POSITIONS" ToolTipService.ShowDuration="20000" ToolTip="Failsafe for a window stuck off screen: centers the planner on the main screen, moves Settings and any open helper windows back with it, and returns the route map overlay to its default size in the middle of the main screen." />
                 </Canvas>
             </Popup>
 
