@@ -1,3 +1,4 @@
+#if DEBUG
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -81,3 +82,4 @@ public static class ScanDebugLog
         }
     }
 }
+#endif

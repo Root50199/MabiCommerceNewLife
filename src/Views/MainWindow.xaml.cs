@@ -94,7 +94,11 @@ public partial class MainWindow : Window
         _plannerPreferences = LoadPlannerPreferences();
         ScreenReaderModeCheckBox.IsChecked = _plannerPreferences.ScreenReaderModeEnabled;
         DetailedRewardTooltipsCheckBox.IsChecked = _plannerPreferences.DetailedRewardTooltips;
+#if DEBUG
         ScanDebugModeCheckBox.IsChecked = _plannerPreferences.ScanDebugMode;
+#else
+        ScanDebugSettingsRow.Visibility = Visibility.Collapsed;
+#endif
         TradeProfitInGoldCheckBox.IsChecked = _plannerPreferences.ShowTradeProfitInGold;
         ReadPriceListButton.Visibility = _plannerPreferences.ScreenReaderModeEnabled
             ? Visibility.Visible : Visibility.Collapsed;
@@ -394,8 +398,10 @@ public partial class MainWindow : Window
         public Dictionary<string, string> AccessoryEnchantIds { get; set; } = [];
         public Dictionary<string, int> AccessoryEnchantRolls { get; set; } = [];
         public bool DetailedRewardTooltips { get; set; }
+#if DEBUG
         // Saves auto-accept-worthy scan captures and their OCR text to ScanDebugLog.FolderPath.
         public bool ScanDebugMode { get; set; }
+#endif
         public bool ShowTradeProfitInGold { get; set; }
         // Remaining weekly stock for Group and Barter goods, keyed by GoodsEntry.Id.
         public Dictionary<int, int> WeeklyStockByProductId { get; set; } = [];
@@ -2690,7 +2696,9 @@ public partial class MainWindow : Window
         public string DebugDetails { get; init; } = string.Empty;
     }
 
+#if DEBUG
     private string _lastScanFailureDetails = string.Empty;
+#endif
 
     private async void ReadPriceListButton_Click(object sender, RoutedEventArgs e)
     {
@@ -2718,12 +2726,16 @@ public partial class MainWindow : Window
             }
 
             SetStatus(usingSavedRegion ? "Reading the saved scan region..." : "Reading the selected price list...");
+#if DEBUG
             _lastScanFailureDetails = string.Empty;
+#endif
             var (read, readError) = await ReadPriceListImageAsync(screenImage);
             if (read is null)
             {
+#if DEBUG
                 if (_plannerPreferences.ScanDebugMode)
                     ScanDebugLog.Save(screenImage, "FAILED", $"{readError}{Environment.NewLine}{_lastScanFailureDetails}", "Failed");
+#endif
                 if (usingSavedRegion)
                 {
                     region = null;
@@ -2734,8 +2746,10 @@ public partial class MainWindow : Window
             }
 
             RememberSuccessfulScanRegion(capturedRegion.Value);
+#if DEBUG
             if (_plannerPreferences.ScanDebugMode && read.CanAutoAccept)
                 ScanDebugLog.Save(screenImage, read.Product.Name, read.DebugDetails);
+#endif
             ApplyPriceListScan(read);
             return;
         }
@@ -2800,8 +2814,10 @@ public partial class MainWindow : Window
             var productIdentity = FindIn(layoutGoods.Where(item => ModeOf(item) == _goodsMode)) ?? FindIn(layoutGoods);
             if (productIdentity is null)
             {
+#if DEBUG
                 if (_plannerPreferences.ScanDebugMode)
                     _lastScanFailureDetails = ScanDebugLog.Describe(result);
+#endif
                 return (null, "Could not uniquely identify the good. Include its full bracketed name in the region.");
             }
 
@@ -2869,10 +2885,14 @@ public partial class MainWindow : Window
 
     private string DescribeForDebug(AnchoredPriceListOcrResult result, GoodsEntry product, CommercePost sourcePost,
         OcrSourcePrice? sourcePrice, IReadOnlyList<PriceListOcrCandidate> candidates) =>
+#if DEBUG
         _plannerPreferences.ScanDebugMode
             ? ScanDebugLog.DescribeCandidates(product.Name, sourcePost.Name, sourcePrice, candidates)
                 + Environment.NewLine + ScanDebugLog.Describe(result)
             : string.Empty;
+#else
+        string.Empty;
+#endif
 
     private void ApplyPriceListScan(PriceListScanRead read)
     {
@@ -3924,6 +3944,7 @@ public partial class MainWindow : Window
 
     private void ScanDebugMode_Changed(object sender, RoutedEventArgs e)
     {
+#if DEBUG
         if (_initializing) return;
         _plannerPreferences.ScanDebugMode = ScanDebugModeCheckBox.IsChecked == true;
         SavePlannerPreferences();
@@ -3932,6 +3953,7 @@ public partial class MainWindow : Window
                 ? $"Scan debug mode on (dev only): auto-accept-worthy scans are saved to {folder}."
                 : "Scan debug mode is dev-only: no source workspace was found, so scans will not be saved.",
                 ScanDebugLog.FolderPath is null);
+#endif
     }
 
     private void SettingsPopup_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
