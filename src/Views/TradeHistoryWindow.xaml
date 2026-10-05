@@ -86,7 +86,7 @@
             <Grid Grid.Row="1" Margin="8,4,4,4">
                 <Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                 <Grid Margin="0,0,10,0">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="66"/><ColumnDefinition Width="66"/><ColumnDefinition Width="74"/></Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="66"/><ColumnDefinition Width="66"/><ColumnDefinition Width="74"/><ColumnDefinition Width="20"/></Grid.ColumnDefinitions>
                     <TextBlock Text="Sale" Foreground="#5A4320" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="1" Text="Ducats" Foreground="#5A4320" FontSize="12" FontWeight="Bold" TextAlignment="Right" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="2" Text="Gold" Foreground="#5A4320" FontSize="12" FontWeight="Bold" TextAlignment="Right" VerticalAlignment="Center" ToolTip="Raw Gold" />
@@ -101,7 +101,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Grid Height="36" Background="Transparent" ToolTip="{Binding Tooltip}" ToolTipService.ShowDuration="20000">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="66"/><ColumnDefinition Width="66"/><ColumnDefinition Width="74"/></Grid.ColumnDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="66"/><ColumnDefinition Width="66"/><ColumnDefinition Width="74"/><ColumnDefinition Width="20"/></Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Title}" Foreground="#2E2414" FontSize="12" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
                                         <TextBlock Text="{Binding GoodsText}" Foreground="#5A4320" FontSize="10" TextTrimming="CharacterEllipsis" />
@@ -109,7 +109,8 @@
                                     <TextBlock Grid.Column="1" Text="{Binding DucatsText}" Foreground="#2E2414" FontSize="12" TextAlignment="Right" VerticalAlignment="Center" />
                                     <TextBlock Grid.Column="2" Text="{Binding RawGoldText}" Foreground="#2E2414" FontSize="12" TextAlignment="Right" VerticalAlignment="Center" />
                                     <TextBlock Grid.Column="3" Text="{Binding TotalGoldText}" Foreground="{Binding TotalBrush}" FontSize="12" FontWeight="Bold" TextAlignment="Right" VerticalAlignment="Center" />
-                                </Grid>
+                                                                        <Button Grid.Column="4" Width="14" Height="14" Padding="0" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Foreground="#A33A22" FontSize="12" FontWeight="Bold" Content="✕" Cursor="Hand" Click="RemoveEntry_Click" ToolTip="Delete this sale from the history" />
+                                                                    </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

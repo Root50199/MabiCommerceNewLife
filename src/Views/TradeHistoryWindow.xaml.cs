@@ -60,6 +60,16 @@ public partial class TradeHistoryWindow : Window
         Refresh();
     }
 
+    private void RemoveEntry_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: TradeHistoryRow row }) return;
+        var answer = MessageBox.Show(this, $"Delete this sale from the history?\n\n{row.Title}\n{row.GoodsText}", "Delete sale",
+            MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
+        if (answer != MessageBoxResult.Yes || !_owner.TradeHistory.Remove(row.Entry)) return;
+        _owner.SaveTradeHistory();
+        Refresh();
+    }
+
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ButtonState == MouseButtonState.Pressed) DragMove();
@@ -72,6 +82,7 @@ public sealed class TradeHistoryRow
 {
     public TradeHistoryRow(TradeHistoryEntry entry)
     {
+        Entry = entry;
         Title = $"{entry.Time.ToString("g", CultureInfo.CurrentCulture)} · {entry.Mode} → {entry.Destination}";
         GoodsText = string.Join(", ", entry.Goods.Select(good => $"{good.Quantity:N0} {good.Name}"));
         DucatsText = TradeHistoryWindow.Format(entry.Ducats);
@@ -92,6 +103,7 @@ public sealed class TradeHistoryRow
         Tooltip = tooltip.ToString();
     }
 
+    public TradeHistoryEntry Entry { get; }
     public string Title { get; }
     public string GoodsText { get; }
     public string DucatsText { get; }

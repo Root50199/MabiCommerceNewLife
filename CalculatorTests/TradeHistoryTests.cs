@@ -26,6 +26,23 @@ public sealed class TradeHistoryTests
     }
 
     [TestMethod]
+    public void RemoveDeletesOnlyTheChosenEntry()
+    {
+        var history = new TradeHistory();
+        var first = Entry(500m, 600m, 30_500m);
+        var duplicate = Entry(500m, 600m, 30_500m);
+        history.Add(first);
+        history.Add(duplicate);
+
+        Assert.IsTrue(history.Remove(duplicate));
+
+        Assert.AreEqual(1, history.Entries.Count);
+        Assert.AreSame(first, history.Entries[0]);
+        Assert.AreEqual(30_500m, history.Totals.TotalGold);
+        Assert.IsFalse(history.Remove(duplicate));
+    }
+
+    [TestMethod]
     public void SaveAndLoadRoundTrips()
     {
         var path = Path.Combine(Path.GetTempPath(), $"trade-history-{Guid.NewGuid():N}", "trade-history.json");

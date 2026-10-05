@@ -32,6 +32,15 @@ public sealed class TradeHistory
 
     public void Clear() => _entries.Clear();
 
+    // Removes this exact logged sale; identical-looking sales elsewhere in the log are kept.
+    public bool Remove(TradeHistoryEntry entry)
+    {
+        var index = _entries.FindIndex(item => ReferenceEquals(item, entry));
+        if (index < 0) return false;
+        _entries.RemoveAt(index);
+        return true;
+    }
+
     public TradeHistoryTotals Totals => new(
         _entries.Count,
         _entries.Sum(entry => entry.RawGold),
