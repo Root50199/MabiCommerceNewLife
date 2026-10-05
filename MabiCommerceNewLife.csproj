@@ -20,6 +20,7 @@
     <ApplicationDefinition Include="src\App.xaml" />
     <Page Include="src\**\*.xaml" Exclude="src\App.xaml" />
     <Compile Include="src\**\*.cs" />
+    <None Include="LICENSE;THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Data\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
