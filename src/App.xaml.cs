@@ -11,6 +11,17 @@ public partial class App : Application
     {
         EventManager.RegisterClassHandler(typeof(Window), UIElement.PreviewMouseDownEvent,
             new MouseButtonEventHandler(DropTextBoxFocusOnOutsideClick));
+        EventManager.RegisterClassHandler(typeof(TextBox), UIElement.PreviewMouseLeftButtonDownEvent,
+            new MouseButtonEventHandler(SelectAllOnDoubleClick));
+    }
+
+    // WPF's double-click selects one word, which stops at the thousands separators in numbers.
+    private static void SelectAllOnDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount != 2 || sender is not TextBox box) return;
+        box.Focus();
+        box.SelectAll();
+        e.Handled = true;
     }
 
     protected override void OnStartup(StartupEventArgs e)

@@ -1221,7 +1221,7 @@
             </Button>
             <TextBlock Canvas.Left="545" Canvas.Top="502" Width="72" Text="Current Ducats" Foreground="#54482F" FontSize="8" TextAlignment="Right" />
             <Image x:Name="DucatPlateImage" Canvas.Left="620" Canvas.Top="494" Width="100" Height="27" Stretch="Fill" IsHitTestVisible="False" />
-            <TextBox x:Name="DucatsInput" Canvas.Left="624" Canvas.Top="498" Width="91" Height="19" Text="10000" Style="{StaticResource Entry}" FontSize="9" Padding="4,1" TextChanged="DucatsInput_TextChanged" />
+            <TextBox x:Name="DucatsInput" Canvas.Left="624" Canvas.Top="498" Width="91" Height="19" Text="10000" Style="{StaticResource Entry}" FontSize="9" Padding="4,1" TextChanged="DucatsInput_TextChanged" LostKeyboardFocus="DucatsInput_LostKeyboardFocus" />
             <Image Canvas.Left="699" Canvas.Top="502" Width="11" Height="11" Source="{DynamicResource DucatCurrencyArt}" IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
             <Button x:Name="TransportViewToggleButton" Canvas.Left="768" Canvas.Top="477" Width="24" Height="17" Click="TransportViewToggle_Click" Cursor="Hand" ToolTip="Switch held goods to list view" AutomationProperties.Name="Toggle held goods view" Focusable="False">
                 <Button.Template>

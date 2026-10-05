@@ -2382,7 +2382,7 @@ public partial class MainWindow : Window
     private static decimal RoundDucats(decimal ducats) => decimal.Round(ducats, 0, MidpointRounding.AwayFromZero);
 
     // Ducat balances are whole numbers; decimal scale (e.g. "745889.0") must never reach the text box.
-    private static string FormatDucats(decimal ducats) => RoundDucats(ducats).ToString("0", CultureInfo.CurrentCulture);
+    private static string FormatDucats(decimal ducats) => RoundDucats(ducats).ToString("N0", CultureInfo.CurrentCulture);
 
     private void DucatsInput_TextChanged(object sender, TextChangedEventArgs e)
     {
@@ -2390,6 +2390,13 @@ public partial class MainWindow : Window
             return;
         _plannerPreferences.CurrentDucats = RoundDucats(ducats);
         SavePlannerPreferences();
+    }
+
+    // Separators are applied once editing ends so they don't move the caret while typing.
+    private void DucatsInput_LostKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+    {
+        if (TryRead(DucatsInput, out var ducats) && ducats >= 0)
+            DucatsInput.Text = FormatDucats(ducats);
     }
 
     private void ProductList_SelectionChanged(object sender, SelectionChangedEventArgs e)
