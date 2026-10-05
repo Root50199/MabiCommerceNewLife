@@ -25,9 +25,11 @@
     <ApplicationDefinition Include="src\App.xaml" />
     <Page Include="src\**\*.xaml" Exclude="src\App.xaml" />
     <Compile Include="src\**\*.cs" />
-    <None Include="LICENSE;THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="LICENSE;THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
     <Content Include="Data\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <!-- The app reads Data by file path, so it must stay beside the single-file exe. -->
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
   </ItemGroup>
 

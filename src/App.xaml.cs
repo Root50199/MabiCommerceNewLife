@@ -16,7 +16,16 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        new MainWindow().Show();
+        try
+        {
+            new MainWindow().Show();
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show($"MabiCommerce NewLife could not start.\n\n{exception.Message}\n\nKeep the Data and x64 folders next to MabiCommerceNewLife.exe.",
+                "MabiCommerce NewLife", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(1);
+        }
     }
 
     // Clicking anywhere outside the focused text box ends editing, so its LostKeyboardFocus commit or revert runs.
