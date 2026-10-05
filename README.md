@@ -31,13 +31,17 @@ This tool makes no claim about compatibility with Mabinogi's rules or anti-cheat
 - Travel times are estimates from client map data and the ship schedule. Some regions have no route data.
 - Barter rotations, exchange quantities and some bonus values still need in-game checking.
 
+## Install
+
+Download the zip from [Releases](https://github.com/Root50199/MabiCommerceNewLife/releases), extract it anywhere and run `MabiCommerceNewLife.exe`. Keep the `Data` and `x64` folders next to the exe. No .NET install is needed; screen scan (OCR) needs the [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+
 ## Build
 
-Requires the .NET 9 SDK on Windows. OCR also needs the Microsoft Visual C++ 2022 runtime.
+Requires the .NET 9 SDK on Windows.
 
 ```powershell
 dotnet build
-dotnet publish -c Release -r win-x64 --self-contained true
+dotnet publish -c Release   # single self-contained exe in bin\Release\net9.0-windows\win-x64\publish
 ```
 
 ## Tests
