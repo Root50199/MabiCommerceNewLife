@@ -4,6 +4,24 @@ A Windows desktop planner for Mabinogi commerce (C# / WPF, .NET 9). Enter or sca
 
 The window recreates the in-game Trading Post using art, icons and fonts taken from the game client.
 
+## Screenshots
+
+**Manual**
+
+![Manual view](images/ManualView.jpg)
+
+**Auto**
+
+![Auto view](images/AutoView.png)
+
+**Barter**
+
+![Barter view](images/BarterView.png)
+
+**Load Profit**
+
+![Load Profit view](images/ProfitView.png)
+
 ## Features
 
 - **Trade, Group and Barter** pages, each with its own goods list, transport load and stock.
