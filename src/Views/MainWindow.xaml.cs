@@ -1981,12 +1981,22 @@ public partial class MainWindow : Window
         try
         {
             if (File.Exists(PlannerPreferencesPath))
-                return JsonSerializer.Deserialize<PlannerPreferences>(File.ReadAllText(PlannerPreferencesPath)) ?? new PlannerPreferences();
+                return JsonSerializer.Deserialize<PlannerPreferences>(File.ReadAllText(PlannerPreferencesPath)) ?? CreateDefaultPlannerPreferences();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
         {
         }
-        return new PlannerPreferences();
+        return CreateDefaultPlannerPreferences();
+    }
+
+    private static PlannerPreferences CreateDefaultPlannerPreferences()
+    {
+        var values = DefaultItemValues.Load(Path.Combine(AppContext.BaseDirectory, "Data", "default-item-values.json"));
+        return new PlannerPreferences
+        {
+            BarterMaterialValuesById = values.BarterMaterialValuesById,
+            GuaranteeLetterMarketValue = values.GuaranteeLetterMarketValue
+        };
     }
 
     private void SavePlannerPreferences()

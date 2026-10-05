@@ -18,6 +18,7 @@ The window recreates the in-game Trading Post using art, icons and fonts taken f
 - **Trade history** (in Settings): a log of every load sold with the Sell button, with running totals of raw Gold, Ducats and converted total Gold.
 
 Settings and prices are saved in `%LOCALAPPDATA%\MabiCommerceNewLife`.
+New profiles start with editable reference material and guarantee-letter values; existing saved values are kept.
 
 ## What it does not do
 
