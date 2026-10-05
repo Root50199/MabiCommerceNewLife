@@ -21,6 +21,8 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<GoodsEntry> _products;
     // Barter goods share product IDs with trade goods in the client tables, so they are keyed with an offset.
     private const int BarterProductIdOffset = 1_000_000;
+    // Display-only tag so this barter offer isn't confused with Tara's trade Rocking Chair.
+    private const int KaruRockingChairOfferId = 21006;
     private const int KaruOasisRouteId = 201202;
     private const int CalidaPeraRouteId = 203204;
     private static readonly (int RouteId, int FirstPostId, int SecondPostId, string Name)[] BarterPairRoutes =
@@ -206,7 +208,8 @@ public partial class MainWindow : Window
                 Id = BarterProductIdOffset + offer.Id,
                 CatalogId = offer.Id,
                 PostId = offer.PostId,
-                Name = offer.Name,
+                Name = offer.Id == KaruRockingChairOfferId ? offer.Name + " (Karu)" : offer.Name,
+                GameName = offer.Name,
                 RequiredCreditLevel = offer.RequiredCreditLevel,
                 ResetType = offer.ResetType,
                 SourceCount = offer.SourceCount,
@@ -2785,7 +2788,7 @@ public partial class MainWindow : Window
             var visibleIds = result.TownRows.Select(row => row.PostId).ToHashSet();
             var recognizedName = $"{result.ProductNameText}\n{result.ProductMetadataText}";
             OcrProductIdentity? FindIn(IEnumerable<GoodsEntry> items) => PriceListOcrParser.FindUniqueProduct(recognizedName,
-                items.Select(item => new OcrProductIdentity(item.Id, item.PostId, item.Name)), visibleIds);
+                items.Select(item => new OcrProductIdentity(item.Id, item.PostId, item.GameName ?? item.Name)), visibleIds);
             // Inactive rotating barter alternatives stay searchable so a scan can switch the active offer.
             var productIdentity = FindIn(layoutGoods.Where(item => ModeOf(item) == _goodsMode)) ?? FindIn(layoutGoods);
             if (productIdentity is null)
@@ -4250,6 +4253,8 @@ public sealed class GoodsEntry : INotifyPropertyChanged
     public int Id { get; set; }
     public int PostId { get; set; }
     public string Name { get; set; } = string.Empty;
+    // The in-game name used for OCR matching when Name carries a display-only tag.
+    public string? GameName { get; set; }
     public int RequiredCreditLevel { get; set; }
     public bool CommerceParty { get; set; }
     public string ResetType { get; set; } = string.Empty;
