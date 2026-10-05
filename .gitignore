@@ -5,6 +5,10 @@ build-validation/
 TestResults/
 publish/
 dist/
+config.json
+config.json.tmp
+trade-history.json
+trade-history.json.tmp
 *_wpftmp.csproj
 *.user
 .vs/

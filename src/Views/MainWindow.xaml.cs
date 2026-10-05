@@ -362,6 +362,10 @@ public partial class MainWindow : Window
 
     private sealed class PlannerPreferences
     {
+        public int[] AvailableTransportIds { get; set; } = [];
+        public bool PartnerEnabled { get; set; }
+        public bool AlpacaEnabled { get; set; }
+        public bool WilliamEnabled { get; set; }
         public decimal CurrentDucats { get; set; } = 10000m;
         public bool AlwaysOnTop { get; set; }
         public bool ScreenReaderModeEnabled { get; set; }
@@ -1956,38 +1960,10 @@ public partial class MainWindow : Window
     }
 
 
-    private static string AvailableTransportsPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "MabiCommerceNewLife", "available-transports.json");
+    private static string PlannerPreferencesPath => PortableConfig.SettingsPath(AppContext.BaseDirectory);
 
-    private static string PartnerEnabledPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "MabiCommerceNewLife", "partner-enabled.json");
-
-    private static string AlpacaEnabledPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "MabiCommerceNewLife", "alpaca-enabled.json");
-
-    private static string WilliamEnabledPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "MabiCommerceNewLife", "william-enabled.json");
-
-    private static string PlannerPreferencesPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "MabiCommerceNewLife", "planner-preferences.json");
-
-    private static PlannerPreferences LoadPlannerPreferences()
-    {
-        try
-        {
-            if (File.Exists(PlannerPreferencesPath))
-                return JsonSerializer.Deserialize<PlannerPreferences>(File.ReadAllText(PlannerPreferencesPath)) ?? CreateDefaultPlannerPreferences();
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
-        {
-        }
-        return CreateDefaultPlannerPreferences();
-    }
+    private static PlannerPreferences LoadPlannerPreferences() =>
+        PortableConfig.Load(PlannerPreferencesPath, CreateDefaultPlannerPreferences);
 
     private static PlannerPreferences CreateDefaultPlannerPreferences()
     {
@@ -2003,50 +1979,17 @@ public partial class MainWindow : Window
     {
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(PlannerPreferencesPath)!);
-            File.WriteAllText(PlannerPreferencesPath, JsonSerializer.Serialize(_plannerPreferences));
+            PortableConfig.Save(PlannerPreferencesPath, _plannerPreferences);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            SetStatus($"Planner settings could not be saved: {exception.Message}", true);
+            SetStatus($"Settings could not be saved to {PlannerPreferencesPath}. Use a writable app folder. {exception.Message}", true);
         }
     }
 
-    private static bool LoadPartnerEnabled()
-    {
-        try
-        {
-            return File.Exists(PartnerEnabledPath) && JsonSerializer.Deserialize<bool>(File.ReadAllText(PartnerEnabledPath));
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
-        {
-            return false;
-        }
-    }
-
-    private static bool LoadAlpacaEnabled()
-    {
-        try
-        {
-            return File.Exists(AlpacaEnabledPath) && JsonSerializer.Deserialize<bool>(File.ReadAllText(AlpacaEnabledPath));
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
-        {
-            return false;
-        }
-    }
-
-    private static bool LoadWilliamEnabled()
-    {
-        try
-        {
-            return File.Exists(WilliamEnabledPath) && JsonSerializer.Deserialize<bool>(File.ReadAllText(WilliamEnabledPath));
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
-        {
-            return false;
-        }
-    }
+    private bool LoadPartnerEnabled() => _plannerPreferences.PartnerEnabled;
+    private bool LoadAlpacaEnabled() => _plannerPreferences.AlpacaEnabled;
+    private bool LoadWilliamEnabled() => _plannerPreferences.WilliamEnabled;
 
     private void PartnerEnabled_Changed(object sender, RoutedEventArgs e)
     {
@@ -2055,15 +1998,8 @@ public partial class MainWindow : Window
         if (_partnerEnabled == enabled) return;
         _partnerEnabled = enabled;
         UpdateDependentTransportOwnership();
-        try
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(PartnerEnabledPath)!);
-            File.WriteAllText(PartnerEnabledPath, JsonSerializer.Serialize(_partnerEnabled));
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            MessageBox.Show($"Partner setting is active for this session but could not be saved: {exception.Message}", "Partner transport");
-        }
+        _plannerPreferences.PartnerEnabled = _partnerEnabled;
+        SavePlannerPreferences();
         RefreshTransportOptions();
     }
 
@@ -2074,15 +2010,8 @@ public partial class MainWindow : Window
         if (_williamEnabled == enabled) return;
         _williamEnabled = enabled;
         UpdateDependentTransportOwnership();
-        try
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(WilliamEnabledPath)!);
-            File.WriteAllText(WilliamEnabledPath, JsonSerializer.Serialize(_williamEnabled));
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            MessageBox.Show($"William setting is active for this session but could not be saved: {exception.Message}", "William transport");
-        }
+        _plannerPreferences.WilliamEnabled = _williamEnabled;
+        SavePlannerPreferences();
         RefreshTransportOptions();
     }
 
@@ -2093,15 +2022,8 @@ public partial class MainWindow : Window
         if (_alpacaEnabled == enabled) return;
         _alpacaEnabled = enabled;
         UpdateDependentTransportOwnership();
-        try
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(AlpacaEnabledPath)!);
-            File.WriteAllText(AlpacaEnabledPath, JsonSerializer.Serialize(_alpacaEnabled));
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            MessageBox.Show($"Alpaca setting is active for this session but could not be saved: {exception.Message}", "Alpaca transport");
-        }
+        _plannerPreferences.AlpacaEnabled = _alpacaEnabled;
+        SavePlannerPreferences();
         RefreshTransportOptions();
     }
 
@@ -2114,19 +2036,7 @@ public partial class MainWindow : Window
             transport.IsOwned = _alpacaEnabled && _availableTransportIds.Contains(transport.AlpacaBaseTransportId);
     }
 
-    private static IEnumerable<int> LoadAvailableTransportIds()
-    {
-        try
-        {
-            return File.Exists(AvailableTransportsPath)
-                ? JsonSerializer.Deserialize<int[]>(File.ReadAllText(AvailableTransportsPath)) ?? []
-                : [];
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
-        {
-            return [];
-        }
-    }
+    private IEnumerable<int> LoadAvailableTransportIds() => _plannerPreferences.AvailableTransportIds;
 
     private void TransportOwnership_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
@@ -2154,15 +2064,8 @@ public partial class MainWindow : Window
 
     private void SaveAvailableTransportIds()
     {
-        try
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(AvailableTransportsPath)!);
-            File.WriteAllText(AvailableTransportsPath, JsonSerializer.Serialize(_availableTransportIds.Order()));
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            MessageBox.Show($"Transport choices are active for this session but could not be saved: {exception.Message}", "Transport availability");
-        }
+        _plannerPreferences.AvailableTransportIds = _availableTransportIds.Order().ToArray();
+        SavePlannerPreferences();
     }
 
     private void TransportPicker_DropDownClosed(object sender, EventArgs e)
@@ -3431,9 +3334,7 @@ public partial class MainWindow : Window
         return true;
     }
 
-    private static string TradeHistoryPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "MabiCommerceNewLife", "trade-history.json");
+    private static string TradeHistoryPath => PortableConfig.HistoryPath(AppContext.BaseDirectory);
 
     public TradeHistory TradeHistory => _tradeHistory ??= TradeHistory.Load(TradeHistoryPath);
 

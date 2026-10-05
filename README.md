@@ -35,8 +35,9 @@ The window recreates the in-game Trading Post using art, icons and fonts taken f
 - **Weekly reset**: Group and Barter stock can refill automatically at the Thursday reset.
 - **Trade history** (in Settings): a log of every load sold with the Sell button, with running totals of raw Gold, Ducats and converted total Gold.
 
-Settings and prices are saved in `%LOCALAPPDATA%\MabiCommerceNewLife`.
+Settings, prices and transport choices are saved in `config.json` beside the exe; trade history is in `trade-history.json` beside it. Use a writable folder. Copy these files when upgrading to keep your settings.
 New profiles start with editable reference material and guarantee-letter values; existing saved values are kept.
+Each app folder has its own profile; older AppData settings are not imported.
 
 ## What it does not do
 
