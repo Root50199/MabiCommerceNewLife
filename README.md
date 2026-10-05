@@ -52,6 +52,12 @@ dotnet test .\CalculatorTests\CalculatorTests.csproj
 
 OCR tests use your own screenshots, which are not in the repo. See [CalculatorTests/Fixtures/README.md](CalculatorTests/Fixtures/README.md).
 
+## Contributing and releases
+
+Work on `dev`; merge into protected `main` through a pull request after **Build and test** passes. Dependency updates also target `dev`.
+
+For a release, update the project version on `dev`, merge to `main`, then push a matching tag (for example `v0.2.0-beta.1`). Actions builds, tests and publishes the Windows zip and SHA-256 checksum. Tags with a suffix are pre-releases. For local packaging, run `.\tools\Package-Release.ps1`.
+
 ## Data
 
 `Data/` holds the goods catalog, client UI art, fonts, route maps and the OCR model (Tesseract `tessdata`, Apache-2.0). To rebuild the catalog from a local client dump (requires ImageMagick):

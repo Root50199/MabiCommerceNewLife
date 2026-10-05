@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag on main (for example v0.2.0-beta.1)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate release source
+    runs-on: windows-latest
+    outputs:
+      tag: ${{ steps.validate.outputs.tag }}
+      prerelease: ${{ steps.validate.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate tag on main
+        id: validate
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          $tag = $env:RELEASE_TAG
+          if ($tag -notmatch '^v\d+\.\d+\.\d+(-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$') {
+            throw 'Invalid release version tag.'
+          }
+          git rev-parse --verify "refs/tags/$tag"
+          if ($LASTEXITCODE -ne 0) { throw 'Tag does not exist.' }
+          git merge-base --is-ancestor "refs/tags/$tag" origin/main
+          if ($LASTEXITCODE -ne 0) { throw 'Release tags must point to commits on main.' }
+          # Manual reruns must build the selected tag, never a different branch.
+          $tagCommit = git rev-parse "refs/tags/$tag^{commit}"
+          $headCommit = git rev-parse HEAD
+          if ($tagCommit -ne $headCommit) {
+            throw 'For a manual run, select the tagged ref in the Run workflow branch/tag selector.'
+          }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "prerelease=$($tag.Contains('-').ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+  build:
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+    with:
+      release-tag: ${{ needs.validate.outputs.tag }}
+  publish:
+    name: Publish GitHub release
+    needs: [validate, build]
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-x64
+          path: dist
+      - name: Create release with Windows package
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+          PRERELEASE: ${{ needs.validate.outputs.prerelease }}
+        run: |
+          $arguments = @('release', 'create', $env:RELEASE_TAG, '--verify-tag',
+            '--title', "MabiCommerce NewLife $($env:RELEASE_TAG)", '--generate-notes',
+            '--notes', 'Extract the whole zip and run MabiCommerceNewLife.exe. Keep Data and x64 beside the exe. No .NET install needed. OCR requires the Microsoft Visual C++ Redistributable (x64).')
+          if ($env:PRERELEASE -eq 'true') { $arguments += @('--prerelease', '--latest=false') }
+          $arguments += (Get-ChildItem .\dist -File | ForEach-Object { $_.FullName })
+          gh @arguments
+          if ($LASTEXITCODE -ne 0) { throw 'Release creation failed.' }

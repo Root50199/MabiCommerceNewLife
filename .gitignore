@@ -34,3 +34,4 @@ CalculatorTests/PriceListOcrRuntimeTests.cs
 # Route-generation tools (need the local client dump, maps/ and docs/)
 tools/*
 !tools/Import-CommerceCatalog.ps1
+!tools/Package-Release.ps1
