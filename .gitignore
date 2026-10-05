@@ -1,0 +1,34 @@
+# Build output
+bin/
+obj/
+build-validation/
+TestResults/
+*_wpftmp.csproj
+*.user
+.vs/
+.vscode/
+
+# AI agent working notes (kept local)
+AGENTS.md
+NEXT_SESSION_HANDOFF.md
+MISSION_DIRECTIVE.md
+.github/copilot-instructions.md
+ignore.md
+GAME_RESOURCE_MAP.md
+PURCHASE_OPTIMIZER.md
+REGION_ROUTE_MAPPING.md
+BARTER_ROTATION_LOG.md
+
+# Screenshots, captures and local research output
+maps/
+ScanDebug/
+docs/
+CalculatorTests/Fixtures/**/*.png
+CalculatorTests/Fixtures/**/*.jpg
+
+# OCR regression tests tied to the owner's local captures
+CalculatorTests/PriceListOcrRuntimeTests.cs
+
+# Route-generation tools (need the local client dump, maps/ and docs/)
+tools/*
+!tools/Import-CommerceCatalog.ps1

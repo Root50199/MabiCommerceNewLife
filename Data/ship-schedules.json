@@ -1,0 +1,91 @@
+{
+  "erinnMinutesPerRealMinute": 40,
+  "pstUtcOffsetHours": -8,
+  "boardingLeadErinnMinutes": 120,
+  "postContinents": {
+    "Uladh": [1, 2, 3, 4, 5, 6, 7],
+    "Belvast": [8, 9],
+    "Iria": [101, 102, 103, 104, 201, 202, 203, 204]
+  },
+  "landMinutesPerThousandWorldUnits": 0.04645,
+  "landAccessDistances": [
+    { "postId": 1, "portNames": ["Cobh"], "distanceWorldUnits": 154680, "portalCount": 3 },
+    { "postId": 1, "portNames": ["Ceann"], "distanceWorldUnits": 318222, "portalCount": 6 },
+    { "postId": 2, "portNames": ["Cobh"], "distanceWorldUnits": 43843, "portalCount": 1 },
+    { "postId": 2, "portNames": ["Ceann"], "distanceWorldUnits": 201696, "portalCount": 4 },
+    { "postId": 3, "portNames": ["Cobh"], "distanceWorldUnits": 145065, "portalCount": 3 },
+    { "postId": 3, "portNames": ["Ceann"], "distanceWorldUnits": 68235, "portalCount": 2 },
+    { "postId": 4, "portNames": ["Cobh"], "distanceWorldUnits": 127553, "portalCount": 3 },
+    { "postId": 4, "portNames": ["Ceann"], "distanceWorldUnits": 264990, "portalCount": 6 },
+    { "postId": 5, "portNames": ["Cobh"], "distanceWorldUnits": 210727, "portalCount": 3 },
+    { "postId": 5, "portNames": ["Ceann"], "distanceWorldUnits": 361902, "portalCount": 6 },
+    { "postId": 6, "portNames": ["Cobh"], "distanceWorldUnits": 332147, "portalCount": 5 },
+    { "postId": 6, "portNames": ["Ceann"], "distanceWorldUnits": 469584, "portalCount": 8 },
+    { "postId": 7, "portNames": ["Cobh"], "distanceWorldUnits": 0, "portalCount": 0 },
+    { "postId": 7, "portNames": ["Ceann"], "distanceWorldUnits": 196322, "portalCount": 5 },
+    { "postId": 8, "portNames": ["Belvast"], "distanceWorldUnits": 8255, "portalCount": 0 },
+    { "postId": 9, "portNames": ["Belvast"], "distanceWorldUnits": 46668, "portalCount": 1 },
+    { "postId": 101, "portNames": ["Port Qilla"], "distanceWorldUnits": 0, "portalCount": 0 },
+    { "postId": 101, "portNames": ["Port Connous"], "distanceWorldUnits": 650394, "portalCount": 1 },
+    { "postId": 101, "portNames": ["Port Sella"], "distanceWorldUnits": 912878.9, "portalCount": 2 },
+    { "postId": 102, "portNames": ["Port Qilla"], "distanceWorldUnits": 637853.2, "portalCount": 1 },
+    { "postId": 102, "portNames": ["Port Connous"], "distanceWorldUnits": 223588.9, "regionId": 3100, "portalCount": 0 },
+    { "postId": 102, "portNames": ["Port Sella"], "distanceWorldUnits": 734925.4, "portalCount": 2 },
+    { "postId": 103, "portNames": ["Port Qilla"], "distanceWorldUnits": 448547.9, "portalCount": 1 },
+    { "postId": 103, "portNames": ["Port Connous"], "distanceWorldUnits": 813263.6, "portalCount": 1 },
+    { "postId": 103, "portNames": ["Port Sella"], "distanceWorldUnits": 466508.8, "portalCount": 1 },
+    { "postId": 104, "portNames": ["Port Qilla"], "distanceWorldUnits": 773164, "portalCount": 2 },
+    { "postId": 104, "portNames": ["Port Connous"], "distanceWorldUnits": 817163.9, "portalCount": 2 },
+    { "postId": 104, "portNames": ["Port Sella"], "distanceWorldUnits": 220818.1, "regionId": 3200, "portalCount": 0 },
+    { "postId": 201, "portNames": ["Port Qilla"], "distanceWorldUnits": 287579.95, "regionId": 3001, "portalCount": 0 },
+    { "postId": 201, "portNames": ["Port Connous"], "distanceWorldUnits": 426553.9, "portalCount": 1 },
+    { "postId": 201, "portNames": ["Port Sella"], "distanceWorldUnits": 996357.2, "portalCount": 2 },
+    { "postId": 202, "portNames": ["Port Qilla"], "distanceWorldUnits": 526907.5, "portalCount": 1 },
+    { "postId": 202, "portNames": ["Port Connous"], "distanceWorldUnits": 123486.5, "regionId": 3100, "portalCount": 0 },
+    { "postId": 202, "portNames": ["Port Sella"], "distanceWorldUnits": 833392.3, "portalCount": 2 },
+    { "postId": 203, "portNames": ["Port Qilla"], "distanceWorldUnits": 849525.4, "portalCount": 3 },
+    { "postId": 203, "portNames": ["Port Connous"], "distanceWorldUnits": 893525.3, "portalCount": 3 },
+    { "postId": 203, "portNames": ["Port Sella"], "distanceWorldUnits": 375196.9, "portalCount": 1 },
+    { "postId": 204, "portNames": ["Port Qilla"], "distanceWorldUnits": 1056649.6, "portalCount": 3 },
+    { "postId": 204, "portNames": ["Port Connous"], "distanceWorldUnits": 1100649.4, "portalCount": 3 },
+    { "postId": 204, "portNames": ["Port Sella"], "distanceWorldUnits": 582321, "portalCount": 1 }
+  ],
+  "ports": [
+    { "name": "Cobh", "continent": "Uladh" },
+    { "name": "Ceann", "continent": "Uladh" },
+    { "name": "Belvast", "continent": "Belvast" },
+    { "name": "Port Qilla", "continent": "Iria" },
+    { "name": "Port Connous", "continent": "Iria" },
+    { "name": "Port Sella", "continent": "Iria" }
+  ],
+  "routes": [
+    {
+      "from": "Cobh",
+      "to": "Port Qilla",
+      "departureTimesErinn": ["03:00", "07:30", "12:00", "16:30", "21:00"],
+      "travelDurationErinnMinutes": 150,
+      "bidirectional": true
+    },
+    {
+      "from": "Cobh",
+      "to": "Belvast",
+      "departureTimesErinn": ["02:30", "05:30", "08:30", "11:30", "14:30", "17:30", "20:30", "23:30"],
+      "travelDurationErinnMinutes": 80,
+      "bidirectional": true
+    },
+    {
+      "from": "Ceann",
+      "to": "Port Connous",
+      "departureTimesErinn": ["02:00", "06:30", "11:00", "15:30", "20:00"],
+      "travelDurationErinnMinutes": 150,
+      "bidirectional": true
+    },
+    {
+      "from": "Ceann",
+      "to": "Port Sella",
+      "departureTimesErinn": ["02:00", "06:30", "11:00", "15:30", "20:00"],
+      "travelDurationErinnMinutes": 150,
+      "bidirectional": true
+    }
+  ]
+}

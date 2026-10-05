@@ -1,0 +1,185 @@
+{
+  "source": "Measured from in-game map screenshots at the most zoomed-out view (absolute pixels; the game UI does not scale). View is the visible map area; x/y/width/height place the route image (0..1 coordinates) in view pixels.",
+  "regions": [
+    {
+      "region": 1,
+      "name": "Tir Chonaill",
+      "viewWidth": 280,
+      "viewHeight": 320,
+      "x": -0.21,
+      "y": 79.4,
+      "width": 192.05,
+      "height": 192.05
+    },
+    {
+      "region": 14,
+      "name": "Dunbarton",
+      "viewWidth": 320,
+      "viewHeight": 320,
+      "x": -0.08,
+      "y": 32.39,
+      "width": 274.31,
+      "height": 287.02
+    },
+    {
+      "region": 23,
+      "name": "Cobh",
+      "viewWidth": 440,
+      "viewHeight": 340,
+      "x": -40.14,
+      "y": -0.12,
+      "width": 480.0,
+      "height": 340.0
+    },
+    {
+      "region": 30,
+      "name": "Gairech",
+      "viewWidth": 260,
+      "viewHeight": 280,
+      "x": 15.84,
+      "y": 31.68,
+      "width": 160.07,
+      "height": 224.1
+    },
+    {
+      "region": 31,
+      "name": "Bangor",
+      "viewWidth": 380,
+      "viewHeight": 380,
+      "x": -0.15,
+      "y": -0.15,
+      "width": 384.06,
+      "height": 384.06
+    },
+    {
+      "region": 52,
+      "name": "Emain Macha",
+      "viewWidth": 300,
+      "viewHeight": 300,
+      "x": -0.19,
+      "y": -0.19,
+      "width": 299.99,
+      "height": 299.99
+    },
+    {
+      "region": 53,
+      "name": "Sen Mag Plains",
+      "viewWidth": 380,
+      "viewHeight": 240,
+      "x": -4.14,
+      "y": -0.08,
+      "width": 383.89,
+      "height": 255.93
+    },
+    {
+      "region": 96,
+      "name": "Morva Aisle",
+      "viewWidth": 300,
+      "viewHeight": 420,
+      "x": -8.99,
+      "y": 0.0,
+      "width": 312.0,
+      "height": 432.0
+    },
+    {
+      "region": 100,
+      "name": "Ceann",
+      "viewWidth": 440,
+      "viewHeight": 440,
+      "x": -136.0,
+      "y": 0.0,
+      "width": 576.0,
+      "height": 608.0
+    },
+    {
+      "region": 300,
+      "name": "Taillteann Main Field",
+      "viewWidth": 400,
+      "viewHeight": 300,
+      "x": -14.17,
+      "y": -0.2,
+      "width": 414.01,
+      "height": 303.01
+    },
+    {
+      "region": 302,
+      "name": "Abb Neagh",
+      "viewWidth": 400,
+      "viewHeight": 300,
+      "x": -13.12,
+      "y": -11.12,
+      "width": 413.0,
+      "height": 311.0
+    },
+    {
+      "region": 400,
+      "name": "Tara Connection Field",
+      "viewWidth": 440,
+      "viewHeight": 440,
+      "x": -72.0,
+      "y": -72.0,
+      "width": 511.99,
+      "height": 511.99
+    },
+    {
+      "region": 401,
+      "name": "Tara Main Field",
+      "viewWidth": 240,
+      "viewHeight": 240,
+      "x": -0.19,
+      "y": -0.22,
+      "width": 256.0,
+      "height": 256.0
+    },
+    {
+      "region": 3200,
+      "name": "Iria Physis Region",
+      "viewWidth": 427,
+      "viewHeight": 220,
+      "x": -0.28,
+      "y": -0.2,
+      "width": 448.12,
+      "height": 224.06
+    },
+    {
+      "region": 3300,
+      "name": "Iria Courcle Region",
+      "viewWidth": 440,
+      "viewHeight": 366,
+      "x": -16.14,
+      "y": -0.15,
+      "width": 576.08,
+      "height": 383.96
+    },
+    {
+      "region": 3400,
+      "name": "Iria Zardine Region",
+      "viewWidth": 340,
+      "viewHeight": 240,
+      "x": -0.17,
+      "y": -16.09,
+      "width": 352.0,
+      "height": 255.92
+    },
+    {
+      "region": 4005,
+      "name": "Commonwealth of Belvast",
+      "viewWidth": 400,
+      "viewHeight": 240,
+      "x": -0.17,
+      "y": -0.16,
+      "width": 401.59,
+      "height": 255.06
+    },
+    {
+      "region": 4014,
+      "name": "Scathach Beach",
+      "viewWidth": 380,
+      "viewHeight": 280,
+      "x": -0.02,
+      "y": -13.2,
+      "width": 380.95,
+      "height": 293.46
+    }
+  ]
+}

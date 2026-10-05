@@ -1,0 +1,193 @@
+<Window x:Class="MabiCommerceNewLife.RouteMapToolbar"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Route Map Controls"
+        Height="22" MinWidth="400" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" ShowInTaskbar="False" ShowActivated="False" Topmost="True"
+        UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Window.Resources>
+        <!-- Push buttons: bevelled dark plate. -->
+        <Style x:Key="BarButton" TargetType="ButtonBase">
+            <Setter Property="Foreground" Value="#E9D9AE" />
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Margin" Value="1,0" />
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ButtonBase">
+                        <Border x:Name="Chrome" BorderBrush="#9C7A3E" BorderThickness="1" CornerRadius="2" Padding="{TemplateBinding Padding}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Offset="0" Color="#E04A3820" />
+                                    <GradientStop Offset="1" Color="#E01C140A" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#F0D08A" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#E0120C06" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Independent on/off toggles: a plate with a checkbox square that lights up when on. -->
+        <Style x:Key="CheckToggle" TargetType="ToggleButton" BasedOn="{StaticResource BarButton}">
+            <Setter Property="Padding" Value="3,0,5,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Chrome" BorderBrush="#9C7A3E" BorderThickness="1" CornerRadius="2" Padding="{TemplateBinding Padding}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Offset="0" Color="#E04A3820" />
+                                    <GradientStop Offset="1" Color="#E01C140A" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border x:Name="Box" Width="8" Height="8" Margin="0,0,4,0" BorderBrush="#C9A158" BorderThickness="1" Background="#B0000000" VerticalAlignment="Center">
+                                    <Path x:Name="Tick" Data="M0.5,3 L2.5,5 L5.5,0.5" Stroke="#2A1C08" StrokeThickness="1.4" Stretch="None" Visibility="Collapsed" Margin="0,0,0,0" />
+                                </Border>
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#F0D08A" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Box" Property="Background" Value="#FFD98A" />
+                                <Setter TargetName="Box" Property="BorderBrush" Value="#FFF2C8" />
+                                <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                                <Setter Property="Foreground" Value="#FFF6D8" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- One-or-the-other choices: joined segments with radio dots; the chosen segment is filled gold. -->
+        <Style x:Key="SegmentChoice" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#E9D9AE" />
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Padding" Value="3,0,5,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Chrome" Background="#E01C140A" Padding="{TemplateBinding Padding}">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Grid Width="8" Height="8" Margin="0,0,4,0" VerticalAlignment="Center">
+                                    <Ellipse x:Name="Ring" Stroke="#C9A158" StrokeThickness="1" Fill="#B0000000" />
+                                    <Ellipse x:Name="Dot" Width="4" Height="4" Fill="#2A1C08" Visibility="Collapsed" />
+                                </Grid>
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#E03A2C18" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Chrome" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Offset="0" Color="#F0E2B868" />
+                                            <GradientStop Offset="1" Color="#F0A67A30" />
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="Ring" Property="Fill" Value="#FFF2C8" />
+                                <Setter TargetName="Ring" Property="Stroke" Value="#2A1C08" />
+                                <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
+                                <Setter Property="Foreground" Value="#2A1C08" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GroupSeparator" TargetType="Border">
+            <Setter Property="Width" Value="1" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="Background" Value="#80C9A158" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </Window.Resources>
+
+    <Grid MouseLeftButtonDown="Bar_MouseLeftButtonDown">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="31" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="31" />
+        </Grid.ColumnDefinitions>
+        <Image x:Name="LeftCapImage" Grid.Column="0" Width="31" Height="22" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+        <Border x:Name="SegmentFill" Grid.Column="1" />
+        <Image x:Name="RightCapImage" Grid.Column="2" Width="31" Height="22" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor" RenderTransformOrigin="0.5,0.5">
+            <Image.RenderTransform>
+                <ScaleTransform ScaleX="-1" />
+            </Image.RenderTransform>
+        </Image>
+
+        <DockPanel Grid.Column="1" LastChildFill="True" Background="#01000000">
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                <ToggleButton x:Name="MapModeButton" Style="{StaticResource CheckToggle}" Content="MAP" Click="MapModeButton_Click" ToolTip="On: show the in-game minimap with the route drawn on it. Off: show only the route lines, to place over the in-game map yourself." />
+                <Border Style="{StaticResource GroupSeparator}" />
+                <Border BorderBrush="#9C7A3E" BorderThickness="1" CornerRadius="2" VerticalAlignment="Center" ToolTip="Choose one: only your route, or every mapped trade route in this region (others are faded)">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="MyRouteButton" GroupName="RouteMapRoutes" Style="{StaticResource SegmentChoice}" Content="MY ROUTE" Click="RoutesButton_Click" />
+                        <Border Width="1" Background="#9C7A3E" />
+                        <RadioButton x:Name="AllRoutesButton" GroupName="RouteMapRoutes" Style="{StaticResource SegmentChoice}" Content="ALL ROUTES" Click="RoutesButton_Click" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource GroupSeparator}" />
+                <ToggleButton x:Name="ClickThroughButton" Style="{StaticResource CheckToggle}" Content="CLICK-THRU" Click="ClickThroughButton_Click" ToolTip="On: stay on top but let mouse clicks pass through the map to the game. This bar stays clickable." />
+            </StackPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Border Style="{StaticResource GroupSeparator}" />
+                <Button x:Name="PreviousButton" Style="{StaticResource BarButton}" Padding="2,0" Click="PreviousButton_Click" ToolTip="Previous map on this route">
+                    <Image x:Name="PreviousImage" Width="6" Height="14" Stretch="Fill" RenderOptions.BitmapScalingMode="HighQuality" />
+                </Button>
+                <TextBlock x:Name="PageText" Foreground="#E9D9AE" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" MinWidth="24" TextAlignment="Center" />
+                <Button x:Name="NextButton" Style="{StaticResource BarButton}" Padding="2,0" Click="NextButton_Click" ToolTip="Next map on this route">
+                    <Image x:Name="NextImage" Width="6" Height="14" Stretch="Fill" RenderOptions.BitmapScalingMode="HighQuality" />
+                </Button>
+                <Button Padding="0" Margin="4,0,0,0" Width="15" Height="15" Cursor="Hand" Focusable="False" VerticalAlignment="Center" Click="CloseButton_Click" ToolTip="Close the route map">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <ContentPresenter x:Name="Content" />
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Content" Property="Opacity" Value="0.75" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                    <Image x:Name="CloseImage" Width="15" Height="15" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                </Button>
+            </StackPanel>
+            <TextBlock x:Name="TitleText" Foreground="#F7F0DA" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" TextAlignment="Center" Margin="6,0" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" />
+        </DockPanel>
+    </Grid>
+</Window>

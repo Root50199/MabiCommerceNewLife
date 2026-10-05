@@ -1,0 +1,1264 @@
+<Window x:Class="MabiCommerceNewLife.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:MabiCommerceNewLife"
+        xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+        Title="MabiCommerce NewLife" Height="654" Width="995"
+        MinHeight="654" MinWidth="995" WindowStyle="None" ResizeMode="NoResize"
+        AllowsTransparency="True" Background="Transparent"
+        FontFamily="Segoe UI" WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <sys:Double x:Key="BarterMaterialsIdleOpacity">0.4</sys:Double>
+        <Style x:Key="CommerceActionButton" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="#292016" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Image Source="{DynamicResource PurchaseButtonArt}" Stretch="Fill" IsHitTestVisible="False" />
+                            <Border x:Name="ActionOverlay" Background="Transparent" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ActionOverlay" Property="Background" Value="#18FFFFFF" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ActionOverlay" Property="Background" Value="#28000000" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+        <SolidColorBrush x:Key="Ink" Color="#F4ECD9" />
+        <SolidColorBrush x:Key="Muted" Color="#786C54" />
+        <SolidColorBrush x:Key="Line" Color="#756344" />
+        <SolidColorBrush x:Key="Gold" Color="#C29B4A" />
+        <Style x:Key="SettingsPlaceholderCheckBox" TargetType="CheckBox">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Focusable" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid>
+                            <Border x:Name="CheckBoxFace" Background="#29251C" BorderBrush="#A88A46" BorderThickness="1" />
+                            <Path x:Name="CheckMark" Data="M 2,7 L 5,10 L 12,2" Stroke="#F0D78A" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Visibility="Collapsed" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="CheckMark" Property="Visibility" Value="Visible" /></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CheckBoxFace" Property="Background" Value="#554A35" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="Entry" TargetType="TextBox">
+            <Setter Property="Height" Value="22" />
+            <Setter Property="Padding" Value="5,2" />
+            <Setter Property="Foreground" Value="{StaticResource Ink}" />
+            <Setter Property="Background" Value="#29251C" />
+            <Setter Property="BorderBrush" Value="#78633B" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+        <Style x:Key="GameCombo" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="#F4ECD9" />
+            <Setter Property="Background" Value="#493A26" />
+            <Setter Property="BorderBrush" Value="#A88A46" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Foreground" Value="#F4ECD9" />
+                        <Setter Property="Background" Value="#493A26" />
+                        <Setter Property="Padding" Value="5,4" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="ItemBorder" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="ItemBorder" Property="Background" Value="#574A34" />
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="ItemBorder" Property="Background" Value="#554A35" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" />
+                            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" IsHitTestVisible="False" />
+                            <ToggleButton x:Name="PART_DropDownToggle" Focusable="False" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" ClickMode="Press" HorizontalAlignment="Stretch" Background="Transparent" BorderThickness="0">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="ClickSurface" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" />
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="ClickSurface" Property="BorderBrush" Value="#8A7650" />
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="ClickSurface" Property="BorderBrush" Value="#B79A61" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Path x:Name="ArrowPath" Data="M 0 0 L 8 0 L 4 4 Z" Fill="#F4ECD9" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,7,0" IsHitTestVisible="False" />
+                            <Popup x:Name="PART_Popup" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" StaysOpen="False" Placement="Bottom" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                                <Border Background="#493A26" BorderBrush="#A88A46" BorderThickness="1" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="260">
+                                    <ScrollViewer CanContentScroll="True">
+                                        <ItemsPresenter />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.55" />
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#9A8150" />
+                            </Trigger>
+                            <Trigger Property="Background" Value="Transparent">
+                                <Setter TargetName="Chrome" Property="BorderThickness" Value="0" />
+                                <Setter TargetName="PART_DropDownToggle" Property="Background" Value="Transparent" />
+                                <Setter TargetName="PART_DropDownToggle" Property="BorderThickness" Value="0" />
+                                <Setter TargetName="ArrowPath" Property="Fill" Value="#16130F" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="TransportGameCombo" TargetType="ComboBox" BasedOn="{StaticResource GameCombo}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" />
+                            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" IsHitTestVisible="False" />
+                            <ToggleButton x:Name="PART_DropDownToggle" Focusable="False" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" ClickMode="Press" HorizontalAlignment="Stretch" Background="Transparent" BorderThickness="0">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="ClickSurface" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" />
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ClickSurface" Property="BorderBrush" Value="#8A7650" /></Trigger>
+                                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ClickSurface" Property="BorderBrush" Value="#B79A61" /></Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Path x:Name="ArrowPath" Data="M 0 0 L 8 0 L 4 4 Z" Fill="#F4ECD9" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,7,0" IsHitTestVisible="False" />
+                            <Popup x:Name="PART_Popup" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" StaysOpen="False" Placement="Bottom" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                                <Border Background="#493A26" BorderBrush="#A88A46" BorderThickness="1" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="260">
+                                    <Grid>
+                                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                        <StackPanel Orientation="Horizontal" Background="#493A26" Margin="4,3,4,2" HorizontalAlignment="Center">
+                                            <Border BorderBrush="#A88A46" BorderThickness="1" Padding="3,1" Margin="0,0,3,0">
+                                                <CheckBox x:Name="PartnerFilterCheckBox" Content="Commerce Partner" Foreground="#F4ECD9" FontSize="7" Padding="0" Checked="PartnerEnabled_Changed" Unchecked="PartnerEnabled_Changed" ToolTip="Show Partner transports" />
+                                            </Border>
+                                            <Border BorderBrush="#A88A46" BorderThickness="1" Padding="3,1" Margin="0,0,3,0">
+                                                <CheckBox x:Name="WilliamFilterCheckBox" Content="William" Foreground="#F4ECD9" FontSize="7" Padding="0" Checked="WilliamEnabled_Changed" Unchecked="WilliamEnabled_Changed" ToolTip="Show William's Partner transports" />
+                                            </Border>
+                                            <Border BorderBrush="#A88A46" BorderThickness="1" Padding="3,1">
+                                                <CheckBox x:Name="AlpacaFilterCheckBox" Content="Alpaca" Foreground="#F4ECD9" FontSize="7" Padding="0" Checked="AlpacaEnabled_Changed" Unchecked="AlpacaEnabled_Changed" ToolTip="Show Alpaca Wagon when Wagon is available" />
+                                            </Border>
+                                        </StackPanel>
+                                        <ScrollViewer Grid.Row="1" CanContentScroll="True" VerticalScrollBarVisibility="Auto" MaxHeight="195">
+                                            <ItemsPresenter />
+                                        </ScrollViewer>
+                                    </Grid>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.55" /></Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="#9A8150" /></Trigger>
+                            <Trigger Property="Background" Value="Transparent">
+                                <Setter TargetName="Chrome" Property="BorderThickness" Value="0" />
+                                <Setter TargetName="PART_DropDownToggle" Property="Background" Value="Transparent" />
+                                <Setter TargetName="PART_DropDownToggle" Property="BorderThickness" Value="0" />
+                                <Setter TargetName="ArrowPath" Property="Fill" Value="#16130F" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="TransportComboItem" TargetType="ComboBoxItem">
+            <Setter Property="Visibility" Value="{Binding IsVisibleInList, Converter={StaticResource BooleanToVisibility}}" />
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="Foreground" Value="#F4ECD9" />
+            <Setter Property="Background" Value="#493A26" />
+            <Setter Property="Padding" Value="5,4" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                            <Border x:Name="TransportItemBorder" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="22"/></Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0" />
+                                    <CheckBox Grid.Column="1" IsChecked="{Binding IsOwned, Mode=OneWay}" Visibility="{Binding IsOwnershipEditable, Converter={StaticResource BooleanToVisibility}}" HorizontalAlignment="Right" VerticalAlignment="Center" Focusable="True" ToolTip="Available to this character" PreviewMouseLeftButtonDown="TransportOwnership_PreviewMouseLeftButtonDown" PreviewKeyDown="TransportOwnership_PreviewKeyDown" />
+                                </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="TransportItemBorder" Property="Background" Value="#574A34" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="TransportItemBorder" Property="Background" Value="#554A35" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ParchmentGridStyle" TargetType="DataGrid">
+            <Setter Property="Background" Value="#EADFC5" />
+            <Setter Property="Foreground" Value="#342C20" />
+            <Setter Property="BorderBrush" Value="#A28D61" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="GridLinesVisibility" Value="Horizontal" />
+            <Setter Property="HorizontalGridLinesBrush" Value="#C7B78F" />
+            <Setter Property="RowBackground" Value="#EFE4CC" />
+            <Setter Property="AlternatingRowBackground" Value="#E6D8B8" />
+            <Setter Property="HeadersVisibility" Value="Column" />
+            <Setter Property="CanUserResizeRows" Value="False" />
+            <Setter Property="CanUserReorderColumns" Value="False" />
+            <Setter Property="CanUserSortColumns" Value="False" />
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="ColumnHeaderHeight" Value="18" />
+            <Setter Property="RowHeight" Value="16" />
+            <Setter Property="ColumnHeaderStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#D4C29A" />
+                        <Setter Property="Foreground" Value="#342C20" />
+                        <Setter Property="BorderBrush" Value="#A28D61" />
+                        <Setter Property="BorderThickness" Value="0,0,1,1" />
+                        <Setter Property="Padding" Value="3,0" />
+                        <Setter Property="FontSize" Value="8" />
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <DataTemplate x:Key="PickerNameTemplate">
+            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Name}" />
+        </DataTemplate>
+        <DataTemplate x:Key="PostPickerTemplate">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Image Source="{Binding Icon}" Width="24" Height="24" RenderOptions.BitmapScalingMode="NearestNeighbor" Margin="0,0,5,0" />
+                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="ProductTemplate">
+            <Grid Width="273" Height="58" Background="Transparent" ToolTip="{Binding RecipeTooltip}" ToolTipService.IsEnabled="{Binding IsBarter}" ToolTipService.InitialShowDelay="1200" ToolTipService.BetweenShowDelay="0" ToolTipService.ShowDuration="60000">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="65" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Image Grid.ColumnSpan="3" Source="{Binding RowBackground}" Stretch="Fill" IsHitTestVisible="False" />
+                <Image Grid.ColumnSpan="3" Source="{Binding SelectedRowOverlay}" Stretch="Fill" IsHitTestVisible="False">
+                    <Image.Style>
+                        <Style TargetType="Image">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+                <Border Width="48" Height="48" BorderBrush="#9D8244" BorderThickness="1" Background="#171614" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="7,6,0,0">
+                    <Image Source="{Binding Icon}" Width="48" Height="48" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                </Border>
+                <Grid Grid.Column="1" Grid.ColumnSpan="2" VerticalAlignment="Center" Margin="0,0,2,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <local:OutlinedTextBlock Text="{Binding Name}" Foreground="#FFFFFF" OutlineBrush="#B4000000" FontSize="12" OutlineThickness="1">
+                        <local:OutlinedTextBlock.Style>
+                            <Style TargetType="local:OutlinedTextBlock">
+                                <Style.Triggers><DataTrigger Binding="{Binding HasRotationAlternatives}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers>
+                            </Style>
+                        </local:OutlinedTextBlock.Style>
+                    </local:OutlinedTextBlock>
+                    <ComboBox Height="22" Margin="0,0,6,0" HorizontalAlignment="Stretch" ItemsSource="{Binding RotationAlternatives}" SelectedItem="{Binding Mode=OneWay}" Visibility="{Binding HasRotationAlternatives, Converter={StaticResource BooleanToVisibility}}" Background="#B2241C12" Padding="3,0,18,0" SelectionChanged="RotationPicker_SelectionChanged" PreviewMouseLeftButtonDown="RotationPicker_PreviewMouseLeftButtonDown" ToolTip="{Binding RotationHistoryText}" ToolTipService.ShowDuration="60000">
+                        <ComboBox.Style>
+                            <Style TargetType="ComboBox" BasedOn="{StaticResource GameCombo}">
+                                <Style.Triggers>
+                                    <!-- Amber border until this week's offer has been picked or scanned. -->
+                                    <DataTrigger Binding="{Binding IsRotationConfirmedThisWeek}" Value="False">
+                                        <Setter Property="BorderBrush" Value="#E08A2E" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ComboBox.Style>
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <local:OutlinedTextBlock Text="{Binding Name}" Foreground="#FFFFFF" OutlineBrush="#B4000000" FontSize="12" OutlineThickness="1" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+                <StackPanel Grid.Column="2" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="2,0,38,7">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLocked}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                                <DataTrigger Binding="{Binding IsWeeklyLimited}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <local:OutlinedTextBlock Text="Merchant Rating" Foreground="#FFFFFF" OutlineBrush="#AF000000" FontSize="7" OutlineThickness="0.85" TextAlignment="Right">
+                        <local:OutlinedTextBlock.Style>
+                            <Style TargetType="local:OutlinedTextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers><DataTrigger Binding="{Binding IsLocked}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                            </Style>
+                        </local:OutlinedTextBlock.Style>
+                    </local:OutlinedTextBlock>
+                    <local:OutlinedTextBlock Text="{Binding LockText}" Foreground="#FFFFFF" OutlineBrush="#AF000000" FontSize="8" OutlineThickness="0.85" Margin="0,2,0,0" TextAlignment="Right">
+                        <local:OutlinedTextBlock.Style>
+                            <Style TargetType="local:OutlinedTextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers><DataTrigger Binding="{Binding IsLocked}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                            </Style>
+                        </local:OutlinedTextBlock.Style>
+                    </local:OutlinedTextBlock>
+                    <local:OutlinedTextBlock Text="{Binding WeeklyLimitText}" Foreground="#FFFFFF" OutlineBrush="#AF000000" FontSize="7" OutlineThickness="0.85" TextAlignment="Right">
+                        <local:OutlinedTextBlock.Style>
+                            <Style TargetType="local:OutlinedTextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers><DataTrigger Binding="{Binding IsWeeklyLimited}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                            </Style>
+                        </local:OutlinedTextBlock.Style>
+                    </local:OutlinedTextBlock>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate x:Key="SlotTemplate">
+            <Grid Width="77" Height="77">
+                <Image Source="{DynamicResource InventorySlotFrame}" Width="67" Height="67" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+            </Grid>
+        </DataTemplate>
+        <DataTemplate x:Key="TransportTemplate">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Image Source="{Binding Icon}" Width="40" Height="40" RenderOptions.BitmapScalingMode="NearestNeighbor" Margin="0,0,7,0" />
+                <local:OutlinedTextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="#F4ECD9" FontSize="9" />
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="QuoteTemplate">
+            <Grid Width="202" Height="14" Margin="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="66" />
+                    <ColumnDefinition Width="42" />
+                    <ColumnDefinition Width="64" />
+                    <ColumnDefinition Width="30" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding PostName}" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding PostName}">
+                    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#533715" /><Style.Triggers><DataTrigger Binding="{Binding PostId}" Value="-1"><Setter Property="Foreground" Value="#5448ED" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                </TextBlock>
+                <TextBox Grid.Column="1" Text="{Binding DestinationPrice, UpdateSourceTrigger=PropertyChanged}" TextChanged="DestinationPrice_TextChanged" GotKeyboardFocus="DestinationPrice_GotKeyboardFocus" LostKeyboardFocus="DestinationPrice_LostKeyboardFocus" Background="Transparent" BorderBrush="#B8A57C" BorderThickness="0,0,0,1" Foreground="#342C20" FontSize="10" Padding="2,0" TextAlignment="Right" VerticalContentAlignment="Center" ToolTip="Enter an observed sale price; Smuggler has no automatic quote" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="2,0,0,0" VerticalAlignment="Center" Background="Transparent" ToolTip="{Binding PerItemProfitLossToolTip}">
+                    <TextBlock Text="{Binding PerItemProfitLossText}" Foreground="{Binding PerItemProfitLossBrush}" FontSize="10" VerticalAlignment="Center" />
+                    <Image Source="{DynamicResource GoldCurrencyArt}" Width="10" Height="10" Margin="2,0,0,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality">
+                        <Image.Style><Style TargetType="Image"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding PerItemProfitIsGold}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Image.Style>
+                    </Image>
+                    <Image Source="{DynamicResource DucatCurrencyArt}" Width="10" Height="10" Margin="2,0,0,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Visibility="{Binding PerItemProfitIsDucat, Converter={StaticResource BooleanToVisibility}}" />
+                </StackPanel>
+                <TextBlock Grid.Column="3" Text="{Binding EstimatedTimeText}" Foreground="#533715" FontSize="10" TextAlignment="Right" VerticalAlignment="Center" ToolTip="{Binding EstimatedTimeToolTip}" />
+            </Grid>
+        </DataTemplate>
+        <DataTemplate x:Key="DestinationTotalTemplate">
+            <Grid Height="15" ToolTip="{Binding ProfitDetails}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="32"/><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding PostName}" Foreground="#342C20" FontSize="9" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="1" Text="{Binding EstimatedTimeText}" Foreground="#6A5A41" FontSize="9" TextAlignment="Center" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="{Binding ProfitPerMinuteText}" Foreground="#6A5A41" FontSize="9" FontWeight="SemiBold" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,11,0" />
+                <Image Grid.Column="2" Source="{DynamicResource GoldCurrencyArt}" Width="9" Height="9" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,1,0" Visibility="{Binding ShowPerMinuteGoldIcon, Converter={StaticResource BooleanToVisibility}}" IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
+                <Image Grid.Column="2" Source="{DynamicResource DucatCurrencyArt}" Width="9" Height="9" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,1,0" Visibility="{Binding ShowPerMinuteDucatIcon, Converter={StaticResource BooleanToVisibility}}" IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
+                <TextBlock Grid.Column="3" Text="{Binding DisplayValue}" Foreground="#342C20" FontSize="9" FontWeight="Bold" TextAlignment="Right" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,12,0" />
+                <Image Grid.Column="3" Source="{DynamicResource GoldCurrencyArt}" Width="9" Height="9" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,1,0" Visibility="{Binding ShowGoldIcon, Converter={StaticResource BooleanToVisibility}}" IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
+            </Grid>
+        </DataTemplate>
+        <DataTemplate x:Key="AutoPlanTemplate">
+            <Grid Width="202" Height="20" Margin="0" ToolTip="{Binding Tooltip}">
+                <Grid.RowDefinitions><RowDefinition Height="10"/><RowDefinition Height="10"/></Grid.RowDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="28"/><ColumnDefinition Width="48"/><ColumnDefinition Width="56"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding DestinationName}" Foreground="#342C20" FontSize="9" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="TIME" Foreground="#6A5A41" FontSize="6" TextAlignment="Center" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="PROFIT/MIN" Foreground="#6A5A41" FontSize="6" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,11,0" />
+                <TextBlock Grid.Column="3" Text="PROFIT" Foreground="#6A5A41" FontSize="6" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0" />
+                <TextBlock Grid.Row="1" Text="{Binding DetailText}" Foreground="#6A5A41" FontSize="8" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding TimeText}" Foreground="#6A5A41" FontSize="8" TextAlignment="Center" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding ProfitPerMinuteText}" Foreground="#6A5A41" FontSize="8" FontWeight="{Binding ProfitPerMinuteFontWeight}" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,11,0" />
+                <Grid Grid.Row="1" Grid.Column="2" Width="9" Height="9" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,1,0" IsHitTestVisible="False" Visibility="{Binding HasProfitPerMinute, Converter={StaticResource BooleanToVisibility}}">
+                    <Image Source="{DynamicResource GoldCurrencyArt}" Visibility="{Binding ProfitIsGold, Converter={StaticResource BooleanToVisibility}}" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <Image Source="{DynamicResource DucatCurrencyArt}" Visibility="{Binding ProfitIsDucat, Converter={StaticResource BooleanToVisibility}}" RenderOptions.BitmapScalingMode="HighQuality" />
+                </Grid>
+                <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding ScoreText}" Foreground="#342C20" FontSize="8" FontWeight="{Binding ProfitFontWeight}" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0" />
+                <Image Grid.Row="1" Grid.Column="3" Source="{DynamicResource GoldCurrencyArt}" Width="9" Height="9" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,3,0" Visibility="{Binding ProfitIsGold, Converter={StaticResource BooleanToVisibility}}" IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
+                <Image Grid.Row="1" Grid.Column="3" Source="{DynamicResource DucatCurrencyArt}" Width="9" Height="9" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,3,0" Visibility="{Binding ProfitIsDucat, Converter={StaticResource BooleanToVisibility}}" IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
+                <Border Grid.Row="1" Grid.ColumnSpan="4" BorderBrush="#B9A77F" BorderThickness="0,0,0,1" VerticalAlignment="Bottom" />
+            </Grid>
+        </DataTemplate>
+        <DataTemplate x:Key="AutoPlaceholderTemplate">
+            <Grid Width="202" Height="20">
+                <Grid.RowDefinitions><RowDefinition Height="10"/><RowDefinition Height="10"/></Grid.RowDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="28"/><ColumnDefinition Width="48"/><ColumnDefinition Width="56"/></Grid.ColumnDefinitions>
+                <TextBlock Text="&lt;Destination&gt;" Foreground="#6A5A41" FontSize="9" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="TIME" Foreground="#6A5A41" FontSize="6" TextAlignment="Center" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="PROFIT/MIN" Foreground="#6A5A41" FontSize="6" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,11,0" />
+                <TextBlock Grid.Column="3" Text="PROFIT" Foreground="#6A5A41" FontSize="6" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0" />
+                <TextBlock Grid.Row="1" Text="[Transport]" Foreground="#6A5A41" FontSize="8" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="&lt;time&gt;" Foreground="#6A5A41" FontSize="8" TextAlignment="Center" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="&lt;profit/min&gt;" Foreground="#6A5A41" FontSize="8" TextAlignment="Right" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="1" Grid.Column="3" Text="&lt;profit&gt;" Foreground="#6A5A41" FontSize="8" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0" />
+                <Border Grid.Row="1" Grid.ColumnSpan="4" BorderBrush="#B9A77F" BorderThickness="0,0,0,1" VerticalAlignment="Bottom" />
+            </Grid>
+        </DataTemplate>
+        <DataTemplate x:Key="CargoListTemplate">
+            <Border Height="34" Margin="2,0,2,3" Background="#E4D3AC" BorderBrush="#A88A46" BorderThickness="1" CornerRadius="2" ToolTip="{Binding Tooltip}">
+                <Grid Margin="3,0,5,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="28" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Image Source="{Binding Icon}" Width="26" Height="26" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                    <StackPanel Grid.Column="1" Margin="4,0,4,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" Foreground="#261F15" FontSize="9" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Details}" Foreground="#54482F" FontSize="8" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Border Grid.Column="2" Background="#C9A04E" VerticalAlignment="Center" Padding="4,1" CornerRadius="1">
+                        <TextBlock Text="{Binding QuantityText}" Foreground="#211A0F" FontSize="9" FontWeight="Bold" />
+                    </Border>
+                </Grid>
+            </Border>
+        </DataTemplate>
+        <DataTemplate x:Key="CargoSlotTemplate">
+            <Grid Width="72" Height="77" ToolTip="{Binding Tooltip}" ToolTipService.IsEnabled="{Binding HasContents}" PreviewMouseRightButtonUp="TransportSlot_PreviewMouseRightButtonUp">
+                <Image Source="{DynamicResource InventorySlotFrame}" Width="64" Height="67" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                <Image Source="{Binding Icon}" Width="44" Height="44" HorizontalAlignment="Center" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="NearestNeighbor">
+                    <Image.Style>
+                        <Style TargetType="Image">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Icon}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+                <Border Background="#C9A04E" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,5,5" Padding="3,1">
+                    <TextBlock Text="{Binding Quantity}" Foreground="#211A0F" FontSize="8" FontWeight="Bold" />
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Quantity}" Value="0"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                </Border>
+            </Grid>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Viewbox Stretch="Uniform">
+        <Canvas Width="825" Height="542" ClipToBounds="True">
+            <Image x:Name="TradingPostFrameImage" Canvas.Left="0" Canvas.Top="0" Width="825" Height="542" Stretch="Fill" />
+
+            <Border Canvas.Left="0" Canvas.Top="0" Width="825" Height="98" Background="Transparent" MouseLeftButtonDown="WindowHeader_MouseLeftButtonDown" />
+            <local:OutlinedTextBlock Text="MabiCommerce NewLife" Foreground="#F7F6E9" FontSize="14" FontWeight="SemiBold" Canvas.Left="310" Canvas.Top="103" Width="205" Height="20" TextAlignment="Center" IsHitTestVisible="False" />
+            <Button Canvas.Left="769" Canvas.Top="80" Width="15" Height="15" Padding="0" Click="Minimize_Click" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Minimize">
+                <Image x:Name="MinimizeButtonImage" Width="15" Height="15" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+            </Button>
+            <Button Canvas.Left="785" Canvas.Top="80" Width="15" Height="15" Padding="0" Click="Close_Click" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Close">
+                <Image x:Name="CloseButtonImage" Width="15" Height="15" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+            </Button>
+            <Button x:Name="SettingsButton" Canvas.Left="758" Canvas.Top="108" Width="24" Height="24" Padding="1" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" Cursor="Hand" ToolTip="Settings" Click="SettingsButton_Click">
+                <Image x:Name="SettingsButtonImage" Width="20" Height="20" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+            </Button>
+            <Popup x:Name="SettingsPopup" Placement="Bottom" HorizontalOffset="-246" VerticalOffset="2" StaysOpen="True" AllowsTransparency="True" PopupAnimation="Fade">
+                <Canvas Width="270" Height="442" ClipToBounds="True">
+                    <Image Canvas.Left="0" Canvas.Top="0" Source="{DynamicResource SettingsMenuBackgroundArt}" Width="270" Height="442" Stretch="Fill" />
+                    <Grid Canvas.Left="12" Canvas.Top="4" Width="252" Height="40">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="18"/></Grid.ColumnDefinitions>
+                        <Thumb Grid.ColumnSpan="2" Background="Transparent" DragDelta="SettingsPopup_DragDelta" ToolTip="Drag to move Settings">
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="Thumb">
+                                    <Border Background="{TemplateBinding Background}" Padding="4,0">
+                                        <TextBlock Text="SETTINGS" Foreground="#F4ECD9" FontSize="10" FontWeight="Bold" TextAlignment="Center" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                                    </Border>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                        <Button Grid.Column="1" Width="16" Height="16" Padding="0" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,0,0" Background="Transparent" BorderThickness="0" Click="SettingsPopupCloseButton_Click" ToolTip="Close Settings">
+                            <Image Source="{DynamicResource SettingsCloseIcon}" Width="15" Height="15" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                        </Button>
+                    </Grid>
+                    <Grid Canvas.Left="97" Canvas.Top="67" Width="76" Height="27">
+                        <Image Source="{DynamicResource BracketTopLeftArt}" Width="14" Height="18" HorizontalAlignment="Left" VerticalAlignment="Top" Stretch="Fill" />
+                        <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" HorizontalAlignment="Right" VerticalAlignment="Top" Stretch="Fill" />
+                        <Image Source="{DynamicResource BracketBottomLeftArt}" Width="14" Height="18" HorizontalAlignment="Left" VerticalAlignment="Bottom" Stretch="Fill" />
+                        <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" HorizontalAlignment="Right" VerticalAlignment="Bottom" Stretch="Fill" />
+                        <TextBlock Text="GENERAL" Foreground="#5A4325" FontSize="8" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center" />
+                    </Grid>
+                    <Grid Canvas.Left="22" Canvas.Top="96" Width="230" Height="31">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <TextBlock Text="Always on top" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" />
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <CheckBox x:Name="AlwaysOnTopCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="AlwaysOnTop_Changed" Unchecked="AlwaysOnTop_Changed" ToolTip="Keep the app above other windows." />
+                        </StackPanel>
+                    </Grid>
+                    <Grid Canvas.Left="22" Canvas.Top="128" Width="230" Height="31">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <TextBlock Text="Screen reader mode" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" />
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <CheckBox x:Name="ScreenReaderModeCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="ScreenReaderMode_Changed" Unchecked="ScreenReaderMode_Changed" ToolTip="Enable manual screen-region price reading." />
+                        </StackPanel>
+                    </Grid>
+                    <Grid Canvas.Left="22" Canvas.Top="160" Width="230" Height="31">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <TextBlock Text="Auto restock weekly goods at reset" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" />
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <CheckBox x:Name="AutoRefreshGroupStockCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="AutoRefreshGroupStock_Changed" Unchecked="AutoRefreshGroupStock_Changed" ToolTip="Refill weekly-limited goods at the weekly reset (Thursday 7 AM Pacific)" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid Canvas.Left="22" Canvas.Top="192" Width="230" Height="31">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <TextBlock Text="Save last successful scan region" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" />
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <CheckBox x:Name="SaveLastScanRegionCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="SaveLastScanRegion_Changed" Unchecked="SaveLastScanRegion_Changed" ToolTip="SCAN reuses the last working region" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid Canvas.Left="22" Canvas.Top="224" Width="230" Height="31">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <TextBlock Text="Ship boarding buffer" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" Background="Transparent" ToolTipService.ShowDuration="20000" ToolTip="Ship travel times assume you miss a ship if you would reach the dock less than this many seconds before it leaves, so the estimate waits for the next one. Turn it off to assume you always board on time." />
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <CheckBox x:Name="FerryBufferCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="FerryBuffer_Changed" Unchecked="FerryBuffer_Changed" ToolTip="Arriving this close to departure counts as missing the ship" />
+                            <Border x:Name="FerryBufferSecondsPaper" Width="34" Height="18" Margin="8,0,0,0" BorderBrush="#78633B" BorderThickness="1" VerticalAlignment="Center">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="2" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="2" />
+                                    </Grid.RowDefinitions>
+                                    <Border Grid.Row="0" Background="{DynamicResource PaperTopBrush}" />
+                                    <Border Grid.Row="1" Background="{DynamicResource PaperFillBrush}" />
+                                    <Border Grid.Row="2" Background="{DynamicResource PaperBottomBrush}" />
+                                    <TextBox x:Name="FerryBufferSecondsInput" Grid.RowSpan="3" Background="Transparent" BorderThickness="0" Foreground="#2E2414" CaretBrush="#2E2414" FontSize="9" FontWeight="Bold" Padding="0,0,2,0" MaxLength="3" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" TextChanged="FerryBufferSeconds_TextChanged" LostKeyboardFocus="FerryBufferSeconds_LostKeyboardFocus" IsEnabledChanged="FerryBufferSecondsInput_IsEnabledChanged" ToolTip="Whole seconds, 0-300" AutomationProperties.Name="Ship boarding buffer in seconds" />
+                                </Grid>
+                            </Border>
+                            <TextBlock Text="sec" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0,0,0" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid Canvas.Left="22" Canvas.Top="256" Width="230" Height="31">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <TextBlock Text="Load time buffer" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" Background="Transparent" ToolTipService.ShowDuration="20000" ToolTip="Seconds added to land route times for every region portal (load screen) the route crosses. Ship crossings are not counted. Set 0 to ignore loading." />
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <Border x:Name="PortalLoadBufferSecondsPaper" Width="34" Height="18" Margin="10,0,0,0" BorderBrush="#78633B" BorderThickness="1" VerticalAlignment="Center">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="2" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="2" />
+                                    </Grid.RowDefinitions>
+                                    <Border Grid.Row="0" Background="{DynamicResource PaperTopBrush}" />
+                                    <Border Grid.Row="1" Background="{DynamicResource PaperFillBrush}" />
+                                    <Border Grid.Row="2" Background="{DynamicResource PaperBottomBrush}" />
+                                    <TextBox x:Name="PortalLoadBufferSecondsInput" Grid.RowSpan="3" Background="Transparent" BorderThickness="0" Foreground="#2E2414" CaretBrush="#2E2414" FontSize="9" FontWeight="Bold" Padding="0,0,2,0" MaxLength="3" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" TextChanged="PortalLoadBufferSeconds_TextChanged" LostKeyboardFocus="PortalLoadBufferSeconds_LostKeyboardFocus" PreviewMouseLeftButtonDown="SettingsSeconds_PreviewMouseLeftButtonDown" GotKeyboardFocus="SettingsSeconds_GotKeyboardFocus" ToolTip="Whole seconds per portal, 0-300" AutomationProperties.Name="Load time buffer in seconds per portal" />
+                                </Grid>
+                            </Border>
+                            <TextBlock Text="sec / portal" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0,0,0" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid Canvas.Left="22" Canvas.Top="288" Width="230" Height="31">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <TextBlock Text="Detailed reward tooltips" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" Background="Transparent" ToolTipService.ShowDuration="20000" ToolTip="Route and barter tooltips normally show the basic Gold + Ducats × rate = total Gold formula. Turn this on to show every factor instead: Commerce Mastery, Letter of Guarantee, Merchant Rating, EXP and seasonal score." />
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <CheckBox x:Name="DetailedRewardTooltipsCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="DetailedRewardTooltips_Changed" Unchecked="DetailedRewardTooltips_Changed" ToolTip="Show the full reward breakdown in every reward tooltip" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid Canvas.Left="22" Canvas.Top="320" Width="230" Height="31">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <TextBlock Text="Trade profit in Gold" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" Background="Transparent" ToolTipService.ShowDuration="20000" ToolTip="Show the per-item profit column of Trade and Group goods as converted Gold (raw Gold + Ducats × Gold per Ducat, with Commerce Mastery and other active bonuses) instead of the sale price minus buy price in Ducats. Barter goods always show Gold." />
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <CheckBox x:Name="TradeProfitInGoldCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="TradeProfitInGold_Changed" Unchecked="TradeProfitInGold_Changed" ToolTip="Show Trade and Group per-item profit as converted Gold" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid Canvas.Left="22" Canvas.Top="352" Width="230" Height="31">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <TextBlock Text="Scan debug mode" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" Background="Transparent" ToolTipService.ShowDuration="20000" ToolTip="Dev-only, off by default. When on, every price-list scan the app judges auto-accept worthy saves its captured region (PNG) and OCR text output to the source workspace's ScanDebug folder so the results can be verified later. Nothing is saved outside a source checkout. Delete the folder when finished." />
+                            <Grid Width="12" Height="18">
+                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
+                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
+                            </Grid>
+                            <CheckBox x:Name="ScanDebugModeCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="ScanDebugMode_Changed" Unchecked="ScanDebugMode_Changed" ToolTip="Save auto-accept-worthy scan captures and OCR text for later verification" />
+                        </StackPanel>
+                    </Grid>
+                    <Button x:Name="ResetWindowPositionsButton" Canvas.Left="65" Canvas.Top="392" Width="140" Height="22" Click="ResetWindowPositions_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="8" FontWeight="Bold" Cursor="Hand" Content="RESET WINDOW POSITIONS" ToolTipService.ShowDuration="20000" ToolTip="Failsafe for a window stuck off screen: centers the planner on the main screen, moves Settings and any open helper windows back with it, and returns the route map overlay to its default size in the middle of the main screen." />
+                </Canvas>
+            </Popup>
+
+            <Image x:Name="SelectedTownIcon" Canvas.Left="28" Canvas.Top="155" Width="49" Height="49" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+            <ComboBox x:Name="PostPicker" Canvas.Left="83" Canvas.Top="155" Width="150" Height="23" ItemTemplate="{StaticResource PickerNameTemplate}" SelectedValuePath="Id" SelectionChanged="PostPicker_SelectionChanged" Style="{StaticResource GameCombo}" FontSize="10" Padding="3,1" />
+            <Button x:Name="ResetGroupStockButton" Canvas.Left="238" Canvas.Top="156" Width="23" Height="23" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand" Visibility="Collapsed" Click="ResetGroupStock_Click" ToolTip="Reset Group goods stock to the weekly maximum" AutomationProperties.Name="Reset weekly goods stock">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent">
+                            <Image x:Name="ResetIconImage" Source="{DynamicResource ResetIconArt}" Stretch="Uniform" Opacity="0.5" RenderOptions.BitmapScalingMode="HighQuality" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ResetIconImage" Property="Opacity" Value="1" /></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ResetIconImage" Property="Opacity" Value="1" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+            <Button x:Name="BarterMaterialsButton" Canvas.Left="269" Canvas.Top="109" Width="23" Height="23" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="BarterMaterialsButton_Click" ToolTip="Barter materials and values" AutomationProperties.Name="Open barter materials">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent">
+                            <Image x:Name="AuctionHouseButtonImage" Stretch="Uniform" Opacity="{DynamicResource BarterMaterialsIdleOpacity}" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="AuctionHouseButtonImage" Property="Opacity" Value="1" /></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="AuctionHouseButtonImage" Property="Opacity" Value="1" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+            <Button x:Name="InventoryButton" Canvas.Left="294" Canvas.Top="109" Width="23" Height="23" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="InventoryButton_Click" ToolTip="Inventory and modifiers: Letters of Guarantee, enchants, Commerce Mastery, Merchant Ratings and discounts" AutomationProperties.Name="Open inventory and modifiers">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent">
+                            <Image x:Name="InventoryButtonImage" Stretch="Uniform" Opacity="0.75" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="InventoryButtonImage" Property="Opacity" Value="1" /></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="InventoryButtonImage" Property="Opacity" Value="1" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+            <TextBlock x:Name="PostRatingText" Canvas.Left="83" Canvas.Top="183" Width="112" Height="18" Text="My Merchant Rating Level" Foreground="#4C4028" FontSize="9" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <TextBox x:Name="RatingInput" Canvas.Left="198" Canvas.Top="181" Width="35" Height="18" Text="1" Style="{StaticResource Entry}" FontSize="9" Padding="3,0" TextChanged="RatingInput_TextChanged" ToolTip="Enter your Merchant Rating for the selected outpost." />
+
+            <ListBox x:Name="ProductList" Canvas.Left="23" Canvas.Top="215" Width="287" Height="300" ItemTemplate="{StaticResource ProductTemplate}" SelectionChanged="ProductList_SelectionChanged" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Visible" VirtualizingPanel.ScrollUnit="Pixel" HorizontalContentAlignment="Left">
+                <ListBox.Resources>
+                    <Style x:Key="ProductScrollButton" TargetType="RepeatButton">
+                        <Setter Property="Background" Value="#D6B65E" />
+                        <Setter Property="BorderBrush" Value="#755626" />
+                        <Setter Property="BorderThickness" Value="1" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="RepeatButton">
+                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#D6B65E" />
+                                <Setter Property="BorderBrush" Value="#755626" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                    <Style TargetType="ScrollBar">
+                        <Setter Property="Width" Value="14" />
+                        <Setter Property="MinWidth" Value="14" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ScrollBar">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="14" />
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="14" />
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.RowSpan="3" Background="#74623F" BorderBrush="#745726" BorderThickness="1,0,1,0" />
+                                        <RepeatButton Grid.Row="0" Command="ScrollBar.LineUpCommand" Style="{StaticResource ProductScrollButton}" Focusable="False">
+                                            <Path Data="M 0,5 L 4,0 L 8,5 Z" Fill="#715426" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
+                                        </RepeatButton>
+                                        <Track x:Name="PART_Track" Grid.Row="1" Orientation="{TemplateBinding Orientation}" IsDirectionReversed="True" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value}" ViewportSize="{TemplateBinding ViewportSize}">
+                                            <Track.Thumb>
+                                                <Thumb>
+                                                    <Thumb.Template>
+                                                        <ControlTemplate TargetType="Thumb">
+                                                            <Border x:Name="ThumbFace" Background="#CEAD54" BorderBrush="#785C30" BorderThickness="1">
+                                                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                                                                    <Rectangle Width="5" Height="1" Fill="#947940" Margin="0,1" />
+                                                                    <Rectangle Width="5" Height="1" Fill="#947940" Margin="0,1" />
+                                                                    <Rectangle Width="5" Height="1" Fill="#947940" Margin="0,1" />
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsEnabled" Value="False">
+                                                                    <Setter TargetName="ThumbFace" Property="Background" Value="#B7A67C" />
+                                                                    <Setter TargetName="ThumbFace" Property="BorderBrush" Value="#8D7A53" />
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Thumb.Template>
+                                                </Thumb>
+                                            </Track.Thumb>
+                                        </Track>
+                                        <RepeatButton Grid.Row="2" Command="ScrollBar.LineDownCommand" Style="{StaticResource ProductScrollButton}" Focusable="False">
+                                            <Path Data="M 0,0 L 4,5 L 8,0 Z" Fill="#715426" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
+                                        </RepeatButton>
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter TargetName="PART_Track" Property="Visibility" Value="Collapsed" />
+                                        </Trigger>
+                                        <Trigger Property="Maximum" Value="0">
+                                            <Setter TargetName="PART_Track" Property="Visibility" Value="Collapsed" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.Resources>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0" />
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="HorizontalContentAlignment" Value="Left" />
+                    </Style>
+                </ListBox.ItemContainerStyle>
+            </ListBox>
+            <Image x:Name="ProductListGuardTopImage" Canvas.Left="24" Canvas.Top="212" Width="273" Height="15" Stretch="Fill" IsHitTestVisible="False" />
+            <Image x:Name="ProductListGuardBottomImage" Canvas.Left="24" Canvas.Top="502" Width="273" Height="15" Stretch="Fill" IsHitTestVisible="False" />
+
+            <TextBlock x:Name="CatalogPriceRange" Visibility="Collapsed" />
+
+                <Border x:Name="TradeCenterPanel" Canvas.Left="315" Canvas.Top="152" Width="230" Height="360" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="275" />
+                        <RowDefinition Height="28" />
+                        <RowDefinition Height="57" />
+                    </Grid.RowDefinitions>
+            <TabControl x:Name="TradeMiddleTabs" Grid.Row="0" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" Padding="0" TabStripPlacement="Top" SelectedIndex="0" SelectionChanged="TradeMiddleTabs_SelectionChanged">
+                <TabControl.Template>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid KeyboardNavigation.TabNavigation="Local">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="17" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <UniformGrid Grid.Row="0" Columns="3" IsItemsHost="True" />
+                            <Border Grid.Row="1" Background="Transparent" BorderBrush="Transparent" BorderThickness="0">
+                                <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent" />
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </TabControl.Template>
+                <TabControl.ItemContainerStyle>
+                    <Style TargetType="TabItem">
+                        <Setter Property="HorizontalAlignment" Value="Stretch" />
+                        <Setter Property="Height" Value="17" />
+                        <Setter Property="Foreground" Value="#D5D0C6" />
+                        <Setter Property="Background" Value="#68645C" />
+                        <Setter Property="BorderBrush" Value="#413D35" />
+                        <Setter Property="BorderThickness" Value="1,1,1,2" />
+                        <Setter Property="Padding" Value="3,0" />
+                        <Setter Property="FontSize" Value="9" />
+                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                        <Setter Property="VerticalContentAlignment" Value="Center" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="TabItem">
+                                    <Border x:Name="TabBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" Opacity="0.75">
+                                        <Border x:Name="Bevel" BorderBrush="#989186" BorderThickness="1,1,0,0">
+                                            <local:OutlinedTextBlock Text="{TemplateBinding Header}" Foreground="{TemplateBinding Foreground}" OutlineThickness="0" FontSize="9" TextAlignment="Center" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="13" />
+                                        </Border>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="TabBorder" Property="Background" Value="#80633F" />
+                                            <Setter TargetName="TabBorder" Property="BorderBrush" Value="#49341F" />
+                                            <Setter TargetName="TabBorder" Property="BorderThickness" Value="1,1,1,0" />
+                                            <Setter TargetName="Bevel" Property="BorderBrush" Value="#AA8960" />
+                                            <Setter TargetName="TabBorder" Property="Opacity" Value="1" />
+                                            <Setter Property="Foreground" Value="#F4ECD9" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </TabControl.ItemContainerStyle>
+                <TabItem Header="MANUAL">
+                    <Grid Background="Transparent" Margin="0">
+                        <Grid.RowDefinitions><RowDefinition Height="42"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <Grid x:Name="SelectedProductHeader" Grid.Row="0" Height="32" Margin="12,-18,12,0" VerticalAlignment="Top">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="17" />
+                                <RowDefinition Height="15" />
+                            </Grid.RowDefinitions>
+                            <local:OutlinedTextBlock x:Name="SelectedProductName" Grid.Row="0"                             Text="Select a good" Foreground="#16130F" OutlineThickness="0" FontSize="12" FontWeight="Bold" TextAlignment="Center" />
+                                                        <local:OutlinedTextBlock x:Name="SelectedProductMeta" Grid.Row="1" Text="Item details" Foreground="#3B2E1B" OutlineThickness="0" FontSize="10" FontWeight="Bold" TextAlignment="Center" />
+                        </Grid>
+                        <local:OutlinedTextBlock x:Name="TradeMarketPriceCaption" Grid.Row="0" Text="Current market price of each town" Foreground="#2D2B27" OutlineThickness="0" FontSize="10.5" Margin="10,27,48,0" Height="14" VerticalAlignment="Top" />
+                        <Button x:Name="ReadPriceListButton" Grid.Row="0" Width="43" Height="14" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,27,4,0" Visibility="Collapsed" Click="ReadPriceListButton_Click" Content="SCAN" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="7" FontWeight="Bold" ToolTip="Scan the in-game price list" />
+                        <Grid x:Name="TradeQuoteRowsGrid" Grid.Row="1">
+                            <Grid.RowDefinitions><RowDefinition Height="14"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Width="202" HorizontalAlignment="Center">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="66"/><ColumnDefinition Width="42"/><ColumnDefinition Width="64"/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="TOWN" Foreground="#5C4B32" FontSize="7" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="PRICE" Foreground="#5C4B32" FontSize="7" TextAlignment="Right" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Grid.ColumnSpan="2" Text="Time(minutes)" Foreground="#5C4B32" FontSize="6" TextAlignment="Right" VerticalAlignment="Center" ToolTip="Estimated travel minutes; -- = unknown" />
+                            </Grid>
+                            <ScrollViewer Grid.Row="1" Background="Transparent" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsControl x:Name="QuotesList" Width="202" HorizontalAlignment="Center" Margin="0" ItemTemplate="{StaticResource QuoteTemplate}" />
+                            </ScrollViewer>
+                        </Grid>
+                        <Grid x:Name="GroupQuoteRowsGrid" Grid.Row="1" Visibility="Collapsed">
+                            <Grid.RowDefinitions><RowDefinition Height="18"/><RowDefinition Height="14"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <local:OutlinedTextBlock x:Name="MarketPriceCaption" Grid.Row="0" Text="Current market price of each town" Foreground="#2D2B27" OutlineThickness="0" FontSize="10.5" Margin="10,0,48,0" Height="14" VerticalAlignment="Center" />
+                            <Button x:Name="GroupReadPriceListButton" Grid.Row="0" Width="43" Height="14" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0" Visibility="Collapsed" Click="ReadPriceListButton_Click" Content="SCAN" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="7" FontWeight="Bold" ToolTip="Scan the in-game price list" />
+                            <Grid Grid.Row="1" Width="202" HorizontalAlignment="Center">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="66"/><ColumnDefinition Width="42"/><ColumnDefinition Width="64"/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="TOWN" Foreground="#5C4B32" FontSize="7" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="PRICE" Foreground="#5C4B32" FontSize="7" TextAlignment="Right" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Grid.ColumnSpan="2" Text="Time(minutes)" Foreground="#5C4B32" FontSize="6" TextAlignment="Right" VerticalAlignment="Center" ToolTip="Estimated travel minutes; -- = unknown" />
+                            </Grid>
+                            <ScrollViewer Grid.Row="2" Background="Transparent" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsControl x:Name="GroupQuotesList" Width="202" HorizontalAlignment="Center" Margin="0" ItemTemplate="{StaticResource QuoteTemplate}" />
+                            </ScrollViewer>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="AUTO">
+                    <Grid Background="Transparent" Margin="5,0,0,0" Width="230" Height="258" HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <Grid.RowDefinitions><RowDefinition Height="25"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Width="202" Height="18" Margin="0,0,8,0" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Button x:Name="AutoSelectedStartModeButton" Content="SELECTED START" Click="AutoSelectedStartModeButton_Click" Background="#A9823C" Foreground="#271D10" BorderBrush="#785B32" BorderThickness="1" FontSize="7" FontWeight="Bold" ToolTip="Calculate routes from the chosen start town" />
+                            <Button x:Name="AutoBestOverallModeButton" Grid.Column="1" Content="BEST OVERALL" Click="AutoBestOverallModeButton_Click" Background="#625946" Foreground="#C4BDAF" BorderBrush="#785B32" BorderThickness="1" FontSize="7" ToolTip="Search cached destination prices across all source towns" />
+                        </Grid>
+                        <ScrollViewer Grid.Row="1" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="Transparent">
+                            <ScrollViewer.Resources>
+                                <Style x:Key="AutoScrollButton" TargetType="RepeatButton">
+                                    <Setter Property="Background" Value="#D6B65E" />
+                                    <Setter Property="BorderBrush" Value="#755626" />
+                                    <Setter Property="BorderThickness" Value="1" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                                <Style TargetType="ScrollBar">
+                                    <Setter Property="Width" Value="14" />
+                                    <Setter Property="MinWidth" Value="14" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ScrollBar">
+                                                <Grid>
+                                                    <Grid.RowDefinitions><RowDefinition Height="14"/><RowDefinition Height="*"/><RowDefinition Height="14"/></Grid.RowDefinitions>
+                                                    <Border Grid.RowSpan="3" Background="#74623F" BorderBrush="#745726" BorderThickness="1,0,1,0" />
+                                                    <RepeatButton Grid.Row="0" Command="ScrollBar.LineUpCommand" Style="{StaticResource AutoScrollButton}" Focusable="False">
+                                                        <Path Data="M 0,5 L 4,0 L 8,5 Z" Fill="#715426" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
+                                                    </RepeatButton>
+                                                    <Track x:Name="PART_Track" Grid.Row="1" Orientation="{TemplateBinding Orientation}" IsDirectionReversed="True" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value}" ViewportSize="{TemplateBinding ViewportSize}">
+                                                        <Track.Thumb>
+                                                            <Thumb>
+                                                                <Thumb.Template>
+                                                                    <ControlTemplate TargetType="Thumb">
+                                                                        <Border Background="#CEAD54" BorderBrush="#785C30" BorderThickness="1">
+                                                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                                                                                <Rectangle Width="5" Height="1" Fill="#947940" Margin="0,1" />
+                                                                                <Rectangle Width="5" Height="1" Fill="#947940" Margin="0,1" />
+                                                                                <Rectangle Width="5" Height="1" Fill="#947940" Margin="0,1" />
+                                                                            </StackPanel>
+                                                                        </Border>
+                                                                    </ControlTemplate>
+                                                                </Thumb.Template>
+                                                            </Thumb>
+                                                        </Track.Thumb>
+                                                    </Track>
+                                                    <RepeatButton Grid.Row="2" Command="ScrollBar.LineDownCommand" Style="{StaticResource AutoScrollButton}" Focusable="False">
+                                                        <Path Data="M 0,0 L 4,5 L 8,0 Z" Fill="#715426" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
+                                                    </RepeatButton>
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ScrollViewer.Resources>
+                            <StackPanel>
+                                <TextBlock Text="TOP 3 · TOTAL PROFIT" Foreground="#342C20" FontSize="7" FontWeight="Bold" Margin="0,1,0,0" />
+                                <Grid Width="202" Height="68">
+                                <ListBox x:Name="AutoProfitResultsList" Height="68" ItemTemplate="{StaticResource AutoPlanTemplate}" SelectionChanged="AutoPlanResult_SelectionChanged" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="HorizontalContentAlignment" Value="Left" />
+                                            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="ItemBorder" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1"><ContentPresenter /></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="#D8C79F"/><Setter TargetName="ItemBorder" Property="BorderBrush" Value="#987642"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListBox>
+                                    <ItemsControl x:Name="AutoProfitPlaceholder" Height="60" VerticalAlignment="Top" ItemTemplate="{StaticResource AutoPlaceholderTemplate}" IsHitTestVisible="False" />
+                                </Grid>
+                                <TextBlock Text="TOP 3 · PROFIT / MIN" Foreground="#342C20" FontSize="7" FontWeight="Bold" Margin="0" />
+                                <Grid Width="202" Height="68">
+                                <ListBox x:Name="AutoTimeResultsList" Height="68" ItemTemplate="{StaticResource AutoPlanTemplate}" SelectionChanged="AutoPlanResult_SelectionChanged" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="HorizontalContentAlignment" Value="Left" />
+                                            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="ItemBorder" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1"><ContentPresenter /></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="#D8C79F"/><Setter TargetName="ItemBorder" Property="BorderBrush" Value="#987642"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListBox>
+                                    <ItemsControl x:Name="AutoTimePlaceholder" Height="60" VerticalAlignment="Top" ItemTemplate="{StaticResource AutoPlaceholderTemplate}" IsHitTestVisible="False" />
+                                </Grid>
+                                <TextBlock Text="CUSTOM SELECTION" Foreground="#342C20" FontSize="7" FontWeight="Bold" Margin="0" />
+                                <Grid Width="202" Height="20">
+                                    <ItemsControl x:Name="AutoCustomPlaceholder" Height="20" ItemTemplate="{StaticResource AutoPlaceholderTemplate}" IsHitTestVisible="False" />
+                                    <ItemsControl x:Name="AutoCustomSelectionList" Height="20" ItemTemplate="{StaticResource AutoPlanTemplate}" IsHitTestVisible="False" Visibility="Collapsed" />
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="LOAD PROFIT">
+                    <Border Background="Transparent" Padding="0" Height="258" VerticalAlignment="Top">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Margin="6,-30,6,0" RenderTransformOrigin="0.5,0.5">
+                                <Grid.RenderTransform>
+                                    <TranslateTransform Y="16.5" />
+                                </Grid.RenderTransform>
+                                <TextBlock Text="ESTIMATED LOAD RETURN BY DESTINATION" Foreground="#000000" FontSize="10" FontWeight="Bold" TextAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                            <Grid Grid.Row="1" RenderTransformOrigin="0.5,0">
+                                <Grid.RenderTransform>
+                                    <TranslateTransform Y="4.5" />
+                                </Grid.RenderTransform>
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top">
+                                    <Grid Width="220" Height="15">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="32"/><ColumnDefinition Width="54"/><ColumnDefinition Width="64"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="TOWN" Foreground="#5C4B32" FontSize="7" FontWeight="Bold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="MIN" Foreground="#5C4B32" FontSize="7" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center" ToolTip="Estimated travel time in minutes" />
+                                        <TextBlock Grid.Column="2" Text="P/M" Foreground="#5C4B32" FontSize="7" FontWeight="Bold" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,11,0" ToolTip="Profit per minute: total Gold for Barter, and for Trade/Group when Settings shows trade profit in Gold; otherwise net Ducat profit" />
+                                        <TextBlock Grid.Column="3" Text="TOTAL" Foreground="#5C4B32" FontSize="7" FontWeight="Bold" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" ToolTip="Total Gold = Gold earned + Ducats earned × your Gold per Ducat rate. Barter loads also subtract the materials' Gold value. Includes Commerce Mastery and the active Letter of Guarantee chosen for this trade type. Hover a row for its full breakdown." />
+                                    </Grid>
+                                    <ListBox x:Name="DestinationTotalsList" Width="220" Height="15" HorizontalAlignment="Center" ItemTemplate="{StaticResource DestinationTotalTemplate}" SelectedValuePath="PostId" SelectionChanged="DestinationTotalsList_SelectionChanged" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.CanContentScroll="False" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="Margin" Value="0" />
+                                            <Setter Property="Height" Value="15" />
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Setter Property="BorderThickness" Value="0" />
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListBoxItem">
+                                                        <Border x:Name="DestinationRow" Background="Transparent" BorderBrush="#B9A77F" BorderThickness="0,0,0,1">
+                                                            <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter TargetName="DestinationRow" Property="Background" Value="#D6B65E" />
+                                                                <Setter TargetName="DestinationRow" Property="BorderBrush" Value="#735321" />
+                                                                <Setter TargetName="DestinationRow" Property="BorderThickness" Value="1" />
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListBox>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </TabItem>
+            </TabControl>
+
+                    <Grid x:Name="PurchaseInputsPanel" Grid.Row="1" Grid.RowSpan="2" Width="148" HorizontalAlignment="Left" Margin="1,1,0,0">
+                        <StackPanel x:Name="ManualPurchaseInputs">
+                            <Grid Margin="0,0,0,2">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="4"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="STOCK" Foreground="#F4ECD9" FontSize="9" FontWeight="Bold" />
+                                    <TextBox x:Name="StockInput" Text="0" Style="{StaticResource Entry}" Height="19" FontSize="9" Padding="4,1" TextChanged="StockInput_TextChanged" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock x:Name="BuyPriceCaption" Text="BUY PRICE" Foreground="#F4ECD9" FontSize="9" FontWeight="Bold" />
+                                    <Grid>
+                                        <TextBox x:Name="BuyPriceInput" Text="" Style="{StaticResource Entry}" Height="19" FontSize="9" Padding="4,1" TextChanged="BuyPriceInput_TextChanged" ToolTip="Buy price at this town" />
+                                        <Image x:Name="BuyPriceGoldIcon" Source="{DynamicResource DucatCurrencyArt}" Width="11" Height="11" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,5,0" IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
+                                    </Grid>
+                                </StackPanel>
+                            </Grid>
+                            <StackPanel>
+                                <Grid>
+                                    <TextBlock Text="PURCHASE QUANTITY" Foreground="#F4ECD9" FontSize="9" FontWeight="Bold" />
+                                    <TextBlock Text="0 = max" Foreground="#CDBB99" FontSize="8" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,2,0" />
+                                </Grid>
+                                <TextBox x:Name="QuantityInput" Text="0" Style="{StaticResource Entry}" Height="19" FontSize="9" Padding="4,1" />
+                            </StackPanel>
+                            <ComboBox x:Name="ManualLetterPicker" Height="18" Margin="0,3,0,0" Style="{StaticResource GameCombo}" FontSize="8" SelectionChanged="ActiveLetterPicker_SelectionChanged" />
+                        </StackPanel>
+                        <Grid x:Name="AutoPurchaseInputs" Visibility="Collapsed">
+                            <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="22"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="45"/></Grid.ColumnDefinitions>
+                                <ComboBox x:Name="AutoSourcePicker" Grid.Column="0" Height="21" SelectedValuePath="Id" ItemTemplate="{StaticResource PickerNameTemplate}" SelectionChanged="AutoSourcePicker_SelectionChanged" Style="{StaticResource GameCombo}" FontSize="8" ToolTip="Choose the starting trading post" />
+                                <TextBlock x:Name="AutoAllSourcesLabel" Grid.Column="0" Text="ALL SOURCES" Foreground="#F4ECD9" FontSize="8" FontWeight="Bold" VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" />
+                                <Button x:Name="AutoCalculateButton" Grid.Column="1" Content="CALC" Margin="2,0,0,0" Click="AutoCalculate_Click" Background="#A9823C" Foreground="#271D10" BorderBrush="#785B32" BorderThickness="1" FontSize="8" FontWeight="Bold" ToolTip="Calculate the top routes from this start" />
+                            </Grid>
+                            <Button x:Name="ExpandedAutoRoutesButton" Grid.Row="1" Click="ExpandedAutoRoutesButton_Click" Background="#66543A" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" ToolTip="Open all calculated routes with detailed metrics">
+                                <TextBlock x:Name="ExpandedAutoRoutesButtonText" Text="VIEW ALL ROUTES" FontSize="7" FontWeight="Bold" Opacity="0.4" />
+                            </Button>
+                            <TextBlock x:Name="AutoStatusText" Grid.Row="2" Text="Choose a start town, then calculate." Foreground="#F4ECD9" FontSize="7" TextWrapping="Wrap" VerticalAlignment="Top" Margin="1,2,0,0" ToolTip="Purchase adds the plan to your cargo list" />
+                        </Grid>
+                        <StackPanel x:Name="LoadProfitInputs" Visibility="Collapsed">
+                            <TextBlock Text="LETTER OF GUARANTEE" Foreground="#F4ECD9" FontSize="9" FontWeight="Bold" />
+                            <ComboBox x:Name="LoadProfitLetterPicker" Height="19" Style="{StaticResource GameCombo}" FontSize="8" SelectionChanged="ActiveLetterPicker_SelectionChanged" />
+                            <TextBlock x:Name="LoadProfitLetterWarning" Foreground="#F2C77A" FontSize="7" TextWrapping="Wrap" Margin="1,2,0,0" Visibility="Collapsed" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="23"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Button x:Name="RouteMapButton" Width="23" Height="21" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand" IsEnabled="False" Click="RouteMapButton_Click" ToolTip="Open the route map overlay for the held goods' route" AutomationProperties.Name="Open route map overlay">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="Transparent" Padding="2">
+                                                <Path x:Name="RouteMapGlyph" Data="M1,4 L7,1 L13,4 L19,1 L19,16 L13,19 L7,16 L1,19 Z M7,1 L7,16 M13,4 L13,19" Stretch="Uniform" Fill="#3A2C19" Stroke="#D0A64D" StrokeThickness="1.6" StrokeLineJoin="Round" Opacity="0.8" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="RouteMapGlyph" Property="Opacity" Value="1" /></Trigger>
+                                                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="RouteMapGlyph" Property="Opacity" Value="1" /></Trigger>
+                                                <Trigger Property="IsEnabled" Value="False"><Setter TargetName="RouteMapGlyph" Property="Opacity" Value="0.3" /></Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                                <ComboBox x:Name="RouteMapDestinationPicker" Grid.Column="1" Height="19" Margin="2,0,0,0" SelectedValuePath="Id" ItemTemplate="{StaticResource PickerNameTemplate}" Style="{StaticResource GameCombo}" FontSize="8" Visibility="Collapsed" SelectionChanged="RouteMapDestinationPicker_SelectionChanged" ToolTip="Destination for the route map. Lists towns that buy every held good." />
+                                <TextBlock x:Name="RouteMapCaption" Grid.Column="1" Text="ROUTE MAP" Foreground="#F4ECD9" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="3,0,0,0" />
+                            </Grid>
+                            <TextBlock x:Name="RouteMapRouteText" Foreground="#F4ECD9" FontSize="7" TextWrapping="Wrap" Margin="1,2,0,0" Text="Load goods to map their route." />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Button x:Name="PurchaseActionButton" Canvas.Left="469" Canvas.Top="419" Width="74" Height="98" Style="{StaticResource CommerceActionButton}" Click="AddToLoad_Click" Content="Purchase" ToolTip="Add selected goods to the transport" />
+            <Button x:Name="SellActionButton" Canvas.Left="469" Canvas.Top="419" Width="74" Height="98" Style="{StaticResource CommerceActionButton}" Click="SellLoad_Click" Content="Sell" Visibility="Collapsed" />
+            <Border x:Name="StatusPanel" Canvas.Left="172.5" Canvas.Top="518" Width="480" Height="20" Padding="4,2" Background="#D8C69F" BorderBrush="#795E2D" BorderThickness="1" Visibility="Collapsed" IsHitTestVisible="False">
+                <TextBlock x:Name="StatusText" Foreground="#3A2C19" FontSize="9" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            </Border>
+
+            <Image x:Name="GoodsToCenterArrow" Canvas.Left="302" Canvas.Top="334" Width="20" Height="48" Stretch="Fill" IsHitTestVisible="False" Visibility="Collapsed" />
+            <Image x:Name="TransportToCenterArrow" Canvas.Left="542" Canvas.Top="334" Width="20" Height="48" Stretch="Fill" IsHitTestVisible="False" Visibility="Collapsed" />
+
+            <Image x:Name="TransportHeaderImage" Canvas.Left="553" Canvas.Top="155" Width="240" Height="55" Stretch="Fill" IsHitTestVisible="False" />
+            <ComboBox x:Name="TransportPicker" Canvas.Left="556" Canvas.Top="158" Width="234" Height="49" SelectedValuePath="Id" SelectionChanged="TransportPicker_SelectionChanged" DropDownOpened="TransportPicker_DropDownOpened" DropDownClosed="TransportPicker_DropDownClosed" ItemTemplate="{StaticResource TransportTemplate}" ItemContainerStyle="{StaticResource TransportComboItem}" Style="{StaticResource TransportGameCombo}" Background="Transparent" BorderThickness="0" Padding="4,2" FontSize="9" />
+
+            <TextBlock Canvas.Left="556" Canvas.Top="215" Width="70" Height="12" Text="WEIGHT" Foreground="#54482F" FontSize="8" />
+            <TextBlock x:Name="WeightText" Canvas.Left="716" Canvas.Top="215" Width="74" Height="12" Text="0 / 400" TextAlignment="Right" Foreground="#F4ECD9" FontSize="8" />
+            <Image x:Name="WeightGaugeBackImage" Canvas.Left="556" Canvas.Top="230" Width="234" Height="8" Stretch="Fill" IsHitTestVisible="False" />
+            <ProgressBar x:Name="WeightGauge" Canvas.Left="556" Canvas.Top="230" Width="234" Height="8" Minimum="0" Maximum="100" Value="0" Foreground="#C39A46" Background="Transparent" BorderThickness="0" />
+            <TextBlock Canvas.Left="556" Canvas.Top="242" Width="60" Height="12" Text="Slots" Foreground="#54482F" FontSize="8" />
+            <TextBlock x:Name="SlotText" Canvas.Left="716" Canvas.Top="242" Width="74" Height="12" Text="0 / 4" TextAlignment="Right" Foreground="#261F15" FontSize="8" />
+            
+
+            <Image x:Name="InventoryListGuardTopImage" Canvas.Left="560" Canvas.Top="262" Width="224" Height="15" Stretch="Fill" IsHitTestVisible="False" />
+            <ScrollViewer Canvas.Left="561" Canvas.Top="265" Width="224" Height="211" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar">
+                        <Setter Property="Width" Value="8" />
+                        <Setter Property="MinWidth" Value="8" />
+                        <Setter Property="Background" Value="#D0BC91" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ScrollBar">
+                                    <Grid Background="{TemplateBinding Background}">
+                                        <Track x:Name="PART_Track" Orientation="{TemplateBinding Orientation}" IsDirectionReversed="True" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value}" ViewportSize="{TemplateBinding ViewportSize}">
+                                            <Track.Thumb>
+                                                <Thumb>
+                                                    <Thumb.Template>
+                                                        <ControlTemplate TargetType="Thumb">
+                                                            <Border Background="#7F5C32" BorderBrush="#624522" BorderThickness="1" CornerRadius="2" />
+                                                        </ControlTemplate>
+                                                    </Thumb.Template>
+                                                </Thumb>
+                                            </Track.Thumb>
+                                        </Track>
+                                    </Grid>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ScrollViewer.Resources>
+                <Grid>
+                    <ItemsControl x:Name="TransportSlots" Width="216" ItemTemplate="{StaticResource CargoSlotTemplate}" PreviewMouseRightButtonUp="TransportSlot_PreviewMouseRightButtonUp">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel ItemWidth="72" ItemHeight="77" Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                    <Grid x:Name="TransportListView" Width="216" VerticalAlignment="Top" Margin="0,8,0,8" Visibility="Collapsed">
+                        <ItemsControl x:Name="TransportListItems" ItemTemplate="{StaticResource CargoListTemplate}" PreviewMouseRightButtonUp="TransportListItem_PreviewMouseRightButtonUp" />
+                        <TextBlock x:Name="TransportListEmptyText" Text="No goods held" Foreground="#54482F" FontSize="9" HorizontalAlignment="Center" Margin="0,12,0,0" />
+                    </Grid>
+                </Grid>
+            </ScrollViewer>
+            <Image x:Name="InventoryListGuardBottomImage" Canvas.Left="560" Canvas.Top="463" Width="224" Height="15" Stretch="Fill" IsHitTestVisible="False" />
+
+            <Button x:Name="ShoppingListButton" Canvas.Left="553" Canvas.Top="477" Width="24" Height="17" Padding="0" Cursor="Hand" Visibility="Collapsed" Click="ShoppingListButton_Click" ToolTipService.ShowOnDisabled="True" AutomationProperties.Name="Open barter shopping list" Focusable="False">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ShoppingListChrome" BorderBrush="#826538" BorderThickness="1" CornerRadius="2">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#EBC468" Offset="0" />
+                                    <GradientStop Color="#D0A64D" Offset="0.55" />
+                                    <GradientStop Color="#B88E3C" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Image Source="{DynamicResource DetailsIconArt}" Width="16" Height="15" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ShoppingListChrome" Property="BorderBrush" Value="#FFF0B8" /></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ShoppingListChrome" Property="Opacity" Value="0.45" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+            <TextBlock Canvas.Left="545" Canvas.Top="502" Width="72" Text="Current Ducats" Foreground="#54482F" FontSize="8" TextAlignment="Right" />
+            <Image x:Name="DucatPlateImage" Canvas.Left="620" Canvas.Top="494" Width="100" Height="27" Stretch="Fill" IsHitTestVisible="False" />
+            <TextBox x:Name="DucatsInput" Canvas.Left="624" Canvas.Top="498" Width="91" Height="19" Text="10000" Style="{StaticResource Entry}" FontSize="9" Padding="4,1" TextChanged="DucatsInput_TextChanged" />
+            <Image Canvas.Left="699" Canvas.Top="502" Width="11" Height="11" Source="{DynamicResource DucatCurrencyArt}" IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
+            <Button x:Name="TransportViewToggleButton" Canvas.Left="768" Canvas.Top="477" Width="24" Height="17" Click="TransportViewToggle_Click" Cursor="Hand" ToolTip="Switch held goods to list view" AutomationProperties.Name="Toggle held goods view" Focusable="False">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ToggleChrome" BorderBrush="#826538" BorderThickness="1" CornerRadius="2">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#EBC468" Offset="0" />
+                                    <GradientStop Color="#D0A64D" Offset="0.55" />
+                                    <GradientStop Color="#B88E3C" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Image Source="{DynamicResource TransportViewToggleArt}" Width="18" Height="15" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ToggleChrome" Property="BorderBrush" Value="#FFF0B8" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="List">
+                                <Setter TargetName="ToggleChrome" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#B88E3C" Offset="0" />
+                                            <GradientStop Color="#D0A64D" Offset="0.5" />
+                                            <GradientStop Color="#E2B959" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+            <Button Canvas.Left="730" Canvas.Top="495" Width="62" Height="25" Click="ClearLoad_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="9" Cursor="Hand" Content="CLEAR LOAD" ToolTip="Clear the transport and restore source stock" />
+
+            <Button x:Name="TradePageTab" Canvas.Left="46" Canvas.Top="111" Width="70" Height="19" Click="ShowTradePage_Click" Content="TRADE" Background="#C59E4B" Foreground="#201B12" BorderBrush="#795E2D" BorderThickness="1" FontSize="7" FontWeight="Bold" />
+            <Button x:Name="GroupPageTab" Canvas.Left="120" Canvas.Top="111" Width="70" Height="19" Click="ShowGroupPage_Click" Content="GROUP" Background="#5B4524" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="7" FontWeight="Bold" />
+            <Button x:Name="BarterPageTab" Canvas.Left="194" Canvas.Top="111" Width="70" Height="19" Click="ShowBarterPage_Click" Content="BARTER" Background="#5B4524" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="7" FontWeight="Bold" />
+        </Canvas>
+    </Viewbox>
+</Window>

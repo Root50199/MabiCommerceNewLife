@@ -1,0 +1,759 @@
+{
+  "observedOn": "2026-10-02",
+  "currency": "S. Ducats",
+  "sources": [
+    {
+      "sourcePostId": 2,
+      "sourcePostName": "Dunbarton",
+      "products": [
+    {
+      "productId": 201,
+      "name": "Spider Gloves",
+      "prices": [
+        { "postId": 1, "price": 65 },
+        { "postId": 3, "price": 91 },
+        { "postId": 4, "price": 71 },
+        { "postId": 5, "price": 116 },
+        { "postId": 6, "price": 115 },
+        { "postId": 7, "price": 44 },
+        { "postId": 8, "price": 76 },
+        { "postId": 101, "price": 94 },
+        { "postId": 102, "price": 212 },
+        { "postId": 103, "price": 224 },
+        { "postId": 104, "price": 206 }
+      ]
+    },
+    {
+      "productId": 202,
+      "name": "Wool Boots",
+      "prices": [
+        { "postId": 1, "price": 191 },
+        { "postId": 3, "price": 212 },
+        { "postId": 4, "price": 199 },
+        { "postId": 5, "price": 241 },
+        { "postId": 6, "price": 255 },
+        { "postId": 7, "price": 152 },
+        { "postId": 8, "price": 187 },
+        { "postId": 101, "price": 212 },
+        { "postId": 102, "price": 426 },
+        { "postId": 103, "price": 440 },
+        { "postId": 104, "price": 418 }
+      ]
+    },
+    {
+      "productId": 203,
+      "name": "Ogre Executioner Mask",
+      "prices": [
+        { "postId": 1, "price": 107 },
+        { "postId": 3, "price": 116 },
+        { "postId": 4, "price": 111 },
+        { "postId": 5, "price": 126 },
+        { "postId": 6, "price": 129 },
+        { "postId": 7, "price": 76 },
+        { "postId": 8, "price": 92 },
+        { "postId": 101, "price": 105 },
+        { "postId": 102, "price": 201 },
+        { "postId": 103, "price": 203 },
+        { "postId": 104, "price": 208 }
+      ]
+    },
+    {
+      "productId": 204,
+      "name": "Incubus Suit",
+      "prices": [
+        { "postId": 1, "price": 635 },
+        { "postId": 3, "price": 656 },
+        { "postId": 4, "price": 622 },
+        { "postId": 5, "price": 718 },
+        { "postId": 6, "price": 734 },
+        { "postId": 7, "price": 431 },
+        { "postId": 8, "price": 534 },
+        { "postId": 101, "price": 603 },
+        { "postId": 102, "price": 969 },
+        { "postId": 103, "price": 1042 },
+        { "postId": 104, "price": 984 }
+      ]
+    },
+    {
+      "productId": 205,
+      "name": "Succubus Swimsuit",
+      "prices": [
+        { "postId": 1, "price": 564 },
+        { "postId": 3, "price": 984 },
+        { "postId": 4, "price": 680 },
+        { "postId": 5, "price": 1145 },
+        { "postId": 6, "price": 1294 },
+        { "postId": 7, "price": 531 },
+        { "postId": 8, "price": 663 },
+        { "postId": 101, "price": 765 },
+        { "postId": 102, "price": 1592 },
+        { "postId": 103, "price": 1544 },
+        { "postId": 104, "price": 1140 }
+      ]
+    }
+      ]
+    },
+    {
+      "sourcePostId": 1,
+      "sourcePostName": "Tir Chonaill",
+      "products": [
+        {
+          "productId": 101,
+          "name": "Baby Potion",
+          "prices": [
+            { "postId": 2, "price": 14 },
+            { "postId": 3, "price": 38 },
+            { "postId": 4, "price": 37 },
+            { "postId": 5, "price": 35 },
+            { "postId": 6, "price": 55 },
+            { "postId": 7, "price": 31 },
+            { "postId": 8, "price": 57 },
+            { "postId": 101, "price": 56 },
+            { "postId": 102, "price": 101 },
+            { "postId": 103, "price": 108 },
+            { "postId": 104, "price": 107 }
+          ]
+        },
+        {
+          "productId": 102,
+          "name": "Diet Potion",
+          "prices": [
+            { "postId": 2, "price": 31 },
+            { "postId": 3, "price": 55 },
+            { "postId": 4, "price": 64 },
+            { "postId": 5, "price": 58 },
+            { "postId": 6, "price": 72 },
+            { "postId": 7, "price": 50 },
+            { "postId": 8, "price": 76 },
+            { "postId": 101, "price": 84 },
+            { "postId": 102, "price": 131 },
+            { "postId": 103, "price": 128 },
+            { "postId": 104, "price": 126 }
+          ]
+        },
+        {
+          "productId": 103,
+          "name": "Snore Prevention Potion",
+          "prices": [
+            { "postId": 2, "price": 70 },
+            { "postId": 3, "price": 100 },
+            { "postId": 4, "price": 101 },
+            { "postId": 5, "price": 89 },
+            { "postId": 6, "price": 114 },
+            { "postId": 7, "price": 97 },
+            { "postId": 8, "price": 123 },
+            { "postId": 101, "price": 129 },
+            { "postId": 102, "price": 171 },
+            { "postId": 103, "price": 178 },
+            { "postId": 104, "price": 170 }
+          ]
+        },
+        {
+          "productId": 104,
+          "name": "Wild Ginseng Potion",
+          "prices": [
+            { "postId": 2, "price": 144 },
+            { "postId": 3, "price": 177 },
+            { "postId": 4, "price": 169 },
+            { "postId": 5, "price": 168 },
+            { "postId": 6, "price": 195 },
+            { "postId": 7, "price": 160 },
+            { "postId": 8, "price": 200 },
+            { "postId": 101, "price": 204 },
+            { "postId": 102, "price": 250 },
+            { "postId": 103, "price": 254 },
+            { "postId": 104, "price": 251 }
+          ]
+        },
+        {
+          "productId": 105,
+          "name": "Lovely Potion",
+          "prices": [
+            { "postId": 2, "price": 162 },
+            { "postId": 3, "price": 253 },
+            { "postId": 4, "price": 248 },
+            { "postId": 5, "price": 218 },
+            { "postId": 6, "price": 161 },
+            { "postId": 7, "price": 233 },
+            { "postId": 8, "price": 245 },
+            { "postId": 101, "price": 289 },
+            { "postId": 102, "price": 306 },
+            { "postId": 103, "price": 306 },
+            { "postId": 104, "price": 330 }
+          ]
+        }
+      ]
+    },
+    {
+      "sourcePostId": 7,
+      "sourcePostName": "Cobh",
+      "products": [
+        {
+          "productId": 701,
+          "name": "Cobh Seaweed",
+          "prices": [
+            { "postId": 1, "price": 39 },
+            { "postId": 2, "price": 12 },
+            { "postId": 3, "price": 41 },
+            { "postId": 4, "price": 41 },
+            { "postId": 5, "price": 50 },
+            { "postId": 6, "price": 55 },
+            { "postId": 8, "price": 25 },
+            { "postId": 101, "price": 27 },
+            { "postId": 102, "price": 81 },
+            { "postId": 103, "price": 83 },
+            { "postId": 104, "price": 76 }
+          ]
+        },
+        {
+          "productId": 702,
+          "name": "Cobh Oyster",
+          "prices": [
+            { "postId": 1, "price": 84 },
+            { "postId": 2, "price": 47 },
+            { "postId": 3, "price": 87 },
+            { "postId": 4, "price": 84 },
+            { "postId": 5, "price": 92 },
+            { "postId": 6, "price": 105 },
+            { "postId": 8, "price": 55 },
+            { "postId": 101, "price": 65 },
+            { "postId": 102, "price": 173 },
+            { "postId": 103, "price": 174 },
+            { "postId": 104, "price": 163 }
+          ]
+        },
+        {
+          "productId": 703,
+          "name": "Shark Fin",
+          "prices": [
+            { "postId": 1, "price": 328 },
+            { "postId": 2, "price": 183 },
+            { "postId": 3, "price": 345 },
+            { "postId": 4, "price": 323 },
+            { "postId": 5, "price": 329 },
+            { "postId": 6, "price": 364 },
+            { "postId": 8, "price": 216 },
+            { "postId": 101, "price": 255 },
+            { "postId": 102, "price": 508 },
+            { "postId": 103, "price": 520 },
+            { "postId": 104, "price": 514 }
+          ]
+        },
+        {
+          "productId": 704,
+          "name": "Jellyfish",
+          "prices": [
+            { "postId": 1, "price": 235 },
+            { "postId": 2, "price": 128 },
+            { "postId": 3, "price": 238 },
+            { "postId": 4, "price": 231 },
+            { "postId": 5, "price": 249 },
+            { "postId": 6, "price": 263 },
+            { "postId": 8, "price": 152 },
+            { "postId": 101, "price": 179 },
+            { "postId": 102, "price": 364 },
+            { "postId": 103, "price": 376 },
+            { "postId": 104, "price": 373 }
+          ]
+        },
+        {
+          "productId": 705,
+          "name": "Neid Scales",
+          "prices": [
+            { "postId": 1, "price": 247 },
+            { "postId": 2, "price": 126 },
+            { "postId": 3, "price": 262 },
+            { "postId": 4, "price": 261 },
+            { "postId": 5, "price": 282 },
+            { "postId": 6, "price": 302 },
+            { "postId": 8, "price": 150 },
+            { "postId": 101, "price": 177 },
+            { "postId": 102, "price": 227 },
+            { "postId": 103, "price": 298 },
+            { "postId": 104, "price": 332 }
+          ]
+        }
+      ]
+    },
+    {
+      "sourcePostId": 3,
+      "sourcePostName": "Bangor",
+      "products": [
+        {
+          "productId": 301,
+          "name": "Bangor Coal",
+          "prices": [
+            { "postId": 1, "price": 158 },
+            { "postId": 2, "price": 118 },
+            { "postId": 4, "price": 174 },
+            { "postId": 5, "price": 214 },
+            { "postId": 6, "price": 212 },
+            { "postId": 7, "price": 150 },
+            { "postId": 8, "price": 230 },
+            { "postId": 101, "price": 248 },
+            { "postId": 102, "price": 299 },
+            { "postId": 103, "price": 338 },
+            { "postId": 104, "price": 279 },
+            { "postId": -1, "price": 75 }
+          ]
+        },
+        {
+          "productId": 302,
+          "name": "Marble",
+          "prices": [
+            { "postId": 1, "price": 481 },
+            { "postId": 2, "price": 411 },
+            { "postId": 4, "price": 493 },
+            { "postId": 5, "price": 497 },
+            { "postId": 6, "price": 551 },
+            { "postId": 7, "price": 486 },
+            { "postId": 8, "price": 572 },
+            { "postId": 101, "price": 580 },
+            { "postId": 102, "price": 657 },
+            { "postId": 103, "price": 669 },
+            { "postId": 104, "price": 651 },
+            { "postId": -1, "price": 612 }
+          ]
+        },
+        {
+          "productId": 303,
+          "name": "Topaz",
+          "prices": [
+            { "postId": 1, "price": 575 },
+            { "postId": 2, "price": 493 },
+            { "postId": 4, "price": 577 },
+            { "postId": 5, "price": 530 },
+            { "postId": 6, "price": 618 },
+            { "postId": 7, "price": 542 },
+            { "postId": 8, "price": 626 },
+            { "postId": 101, "price": 657 },
+            { "postId": 102, "price": 711 },
+            { "postId": 103, "price": 710 },
+            { "postId": 104, "price": 713 },
+            { "postId": -1, "price": 758 }
+          ]
+        },
+        {
+          "productId": 304,
+          "name": "Highlander Ore",
+          "prices": [
+            { "postId": 1, "price": 992 },
+            { "postId": 2, "price": 890 },
+            { "postId": 4, "price": 989 },
+            { "postId": 5, "price": 1018 },
+            { "postId": 6, "price": 1097 },
+            { "postId": 7, "price": 968 },
+            { "postId": 8, "price": 1091 },
+            { "postId": 101, "price": 1134 },
+            { "postId": 102, "price": 1181 },
+            { "postId": 103, "price": 1304 },
+            { "postId": 104, "price": 1181 },
+            { "postId": -1, "price": 1378 }
+          ]
+        },
+        {
+          "productId": 305,
+          "name": "Lead",
+          "prices": [
+            { "postId": 1, "price": 963 },
+            { "postId": 2, "price": 1002 },
+            { "postId": 4, "price": 1088 },
+            { "postId": 5, "price": 1128 },
+            { "postId": 6, "price": 1171 },
+            { "postId": 7, "price": 1025 },
+            { "postId": 8, "price": 1233 },
+            { "postId": 101, "price": 1136 },
+            { "postId": 102, "price": 1381 },
+            { "postId": 103, "price": 825 },
+            { "postId": 104, "price": 1347 },
+            { "postId": -1, "price": 1472 }
+          ]
+        }
+      ]
+    },
+    {
+      "sourcePostId": 4,
+      "sourcePostName": "Emain Macha",
+      "products": [
+        {
+          "productId": 401,
+          "name": "Berry Granola",
+          "prices": [
+            { "postId": 1, "price": 54 },
+            { "postId": 2, "price": 28 },
+            { "postId": 3, "price": 54 },
+            { "postId": 5, "price": 55 },
+            { "postId": 6, "price": 45 },
+            { "postId": 7, "price": 46 },
+            { "postId": 8, "price": 69 },
+            { "postId": 101, "price": 74 },
+            { "postId": 102, "price": 119 },
+            { "postId": 103, "price": 128 },
+            { "postId": 104, "price": 125 },
+            { "postId": -1, "price": 32 }
+          ]
+        },
+        {
+          "productId": 402,
+          "name": "Butter Beer",
+          "prices": [
+            { "postId": 1, "price": 92 },
+            { "postId": 2, "price": 70 },
+            { "postId": 3, "price": 91 },
+            { "postId": 5, "price": 91 },
+            { "postId": 6, "price": 81 },
+            { "postId": 7, "price": 82 },
+            { "postId": 8, "price": 108 },
+            { "postId": 101, "price": 119 },
+            { "postId": 102, "price": 152 },
+            { "postId": 103, "price": 156 },
+            { "postId": 104, "price": 151 },
+            { "postId": -1, "price": 99 }
+          ]
+        },
+        {
+          "productId": 403,
+          "name": "Smoked Wild Animal",
+          "prices": [
+            { "postId": 1, "price": 272 },
+            { "postId": 2, "price": 232 },
+            { "postId": 3, "price": 269 },
+            { "postId": 5, "price": 280 },
+            { "postId": 6, "price": 259 },
+            { "postId": 7, "price": 262 },
+            { "postId": 8, "price": 310 },
+            { "postId": 101, "price": 326 },
+            { "postId": 102, "price": 410 },
+            { "postId": 103, "price": 415 },
+            { "postId": 104, "price": 408 },
+            { "postId": -1, "price": 315 }
+          ]
+        },
+        {
+          "productId": 404,
+          "name": "Triple Pasta",
+          "prices": [
+            { "postId": 1, "price": 128 },
+            { "postId": 2, "price": 116 },
+            { "postId": 3, "price": 129 },
+            { "postId": 5, "price": 136 },
+            { "postId": 6, "price": 130 },
+            { "postId": 7, "price": 124 },
+            { "postId": 8, "price": 148 },
+            { "postId": 101, "price": 153 },
+            { "postId": 102, "price": 199 },
+            { "postId": 103, "price": 209 },
+            { "postId": 104, "price": 207 },
+            { "postId": -1, "price": 151 }
+          ]
+        },
+        {
+          "productId": 405,
+          "name": "Whole BBQ Bear",
+          "prices": [
+            { "postId": 1, "price": 867 },
+            { "postId": 2, "price": 701 },
+            { "postId": 3, "price": 867 },
+            { "postId": 5, "price": 850 },
+            { "postId": 6, "price": 602 },
+            { "postId": 7, "price": 799 },
+            { "postId": 8, "price": 906 },
+            { "postId": 101, "price": 895 },
+            { "postId": 102, "price": 1119 },
+            { "postId": 103, "price": 1035 },
+            { "postId": 104, "price": 1253 },
+            { "postId": -1, "price": 1222 }
+          ]
+        }
+      ]
+    },
+    {
+      "sourcePostId": 5,
+      "sourcePostName": "Taillteann",
+      "products": [
+        {
+          "productId": 501,
+          "name": "Heat Crystal",
+          "prices": [
+            { "postId": 1, "price": 36 },
+            { "postId": 2, "price": 32 },
+            { "postId": 3, "price": 50 },
+            { "postId": 4, "price": 47 },
+            { "postId": 6, "price": 37 },
+            { "postId": 7, "price": 45 },
+            { "postId": 8, "price": 74 },
+            { "postId": 101, "price": 69 },
+            { "postId": 102, "price": 115 },
+            { "postId": 103, "price": 118 },
+            { "postId": 104, "price": 109 },
+            { "postId": -1, "price": 31 }
+          ]
+        },
+        {
+          "productId": 502,
+          "name": "Music Box Preservation Stone",
+          "prices": [
+            { "postId": 1, "price": 75 },
+            { "postId": 2, "price": 77 },
+            { "postId": 3, "price": 95 },
+            { "postId": 4, "price": 94 },
+            { "postId": 6, "price": 77 },
+            { "postId": 7, "price": 91 },
+            { "postId": 8, "price": 124 },
+            { "postId": 101, "price": 133 },
+            { "postId": 102, "price": 173 },
+            { "postId": 103, "price": 168 },
+            { "postId": 104, "price": 173 },
+            { "postId": -1, "price": 73 }
+          ]
+        },
+        {
+          "productId": 503,
+          "name": "Palala Crystal",
+          "prices": [
+            { "postId": 1, "price": 178 },
+            { "postId": 2, "price": 180 },
+            { "postId": 3, "price": 186 },
+            { "postId": 4, "price": 190 },
+            { "postId": 6, "price": 175 },
+            { "postId": 7, "price": 191 },
+            { "postId": 8, "price": 223 },
+            { "postId": 101, "price": 228 },
+            { "postId": 102, "price": 283 },
+            { "postId": 103, "price": 273 },
+            { "postId": 104, "price": 299 },
+            { "postId": -1, "price": 196 }
+          ]
+        },
+        {
+          "productId": 504,
+          "name": "Circle Barrier Spikes Crystal",
+          "prices": [
+            { "postId": 1, "price": 154 },
+            { "postId": 2, "price": 154 },
+            { "postId": 3, "price": 174 },
+            { "postId": 4, "price": 171 },
+            { "postId": 6, "price": 160 },
+            { "postId": 7, "price": 163 },
+            { "postId": 8, "price": 199 },
+            { "postId": 101, "price": 206 },
+            { "postId": 102, "price": 252 },
+            { "postId": 103, "price": 256 },
+            { "postId": 104, "price": 252 },
+            { "postId": -1, "price": 198 }
+          ]
+        },
+        {
+          "productId": 505,
+          "name": "Alchemy Crystal",
+          "prices": [
+            { "postId": 1, "price": 658 },
+            { "postId": 2, "price": 955 },
+            { "postId": 3, "price": 946 },
+            { "postId": 4, "price": 1005 },
+            { "postId": 6, "price": 955 },
+            { "postId": 7, "price": 972 },
+            { "postId": 8, "price": 931 },
+            { "postId": 101, "price": 1182 },
+            { "postId": 102, "price": 1485 },
+            { "postId": 103, "price": 964 },
+            { "postId": 104, "price": 1473 },
+            { "postId": -1, "price": 1147 }
+          ]
+        }
+      ]
+    },
+    {
+      "sourcePostId": 6,
+      "sourcePostName": "Tara",
+      "products": [
+        {
+          "productId": 601,
+          "name": "Mini Dressing Table",
+          "prices": [
+            { "postId": 1, "price": 411 },
+            { "postId": 2, "price": 403 },
+            { "postId": 3, "price": 425 },
+            { "postId": 4, "price": 358 },
+            { "postId": 5, "price": 322 },
+            { "postId": 7, "price": 424 },
+            { "postId": 8, "price": 478 },
+            { "postId": 101, "price": 498 },
+            { "postId": 102, "price": 612 },
+            { "postId": 103, "price": 606 },
+            { "postId": 104, "price": 612 },
+            { "postId": -1, "price": 367 }
+          ]
+        },
+        {
+          "productId": 602,
+          "name": "Tea Table",
+          "prices": [
+            { "postId": 1, "price": 1652 },
+            { "postId": 2, "price": 1604 },
+            { "postId": 3, "price": 1668 },
+            { "postId": 4, "price": 1494 },
+            { "postId": 5, "price": 1289 },
+            { "postId": 7, "price": 1649 },
+            { "postId": 8, "price": 1807 },
+            { "postId": 101, "price": 1935 },
+            { "postId": 102, "price": 2392 },
+            { "postId": 103, "price": 2434 },
+            { "postId": 104, "price": 2420 },
+            { "postId": -1, "price": 1902 }
+          ]
+        },
+        {
+          "productId": 603,
+          "name": "Rocking Chair",
+          "prices": [
+            { "postId": 1, "price": 1361 },
+            { "postId": 2, "price": 1343 },
+            { "postId": 3, "price": 1378 },
+            { "postId": 4, "price": 1202 },
+            { "postId": 5, "price": 1143 },
+            { "postId": 7, "price": 1377 },
+            { "postId": 8, "price": 1460 },
+            { "postId": 101, "price": 1591 },
+            { "postId": 102, "price": 1877 },
+            { "postId": 103, "price": 1911 },
+            { "postId": 104, "price": 1883 },
+            { "postId": -1, "price": 1471 }
+          ]
+        },
+        {
+          "productId": 604,
+          "name": "Bunk Bed",
+          "prices": [
+            { "postId": 1, "price": 4528 },
+            { "postId": 2, "price": 4545 },
+            { "postId": 3, "price": 4580 },
+            { "postId": 4, "price": 4197 },
+            { "postId": 5, "price": 4016 },
+            { "postId": 7, "price": 4549 },
+            { "postId": 8, "price": 4869 },
+            { "postId": 101, "price": 5045 },
+            { "postId": 102, "price": 5707 },
+            { "postId": 103, "price": 5710 },
+            { "postId": 104, "price": 5687 },
+            { "postId": -1, "price": 5655 }
+          ]
+        },
+        {
+          "productId": 605,
+          "name": "Giant Wine Rack",
+          "prices": [
+            { "postId": 1, "price": 9796 },
+            { "postId": 2, "price": 9910 },
+            { "postId": 3, "price": 9109 },
+            { "postId": 4, "price": 9219 },
+            { "postId": 5, "price": 8911 },
+            { "postId": 7, "price": 10064 },
+            { "postId": 8, "price": 11151 },
+            { "postId": 101, "price": 9708 },
+            { "postId": 102, "price": 13194 },
+            { "postId": 103, "price": 12313 },
+            { "postId": 104, "price": 12558 },
+            { "postId": -1, "price": 14565 }
+          ]
+        }
+      ]
+    },
+    {
+      "sourcePostId": 8,
+      "sourcePostName": "Belvast",
+      "products": [
+        {
+          "productId": 801,
+          "name": "Iron Whip",
+          "prices": [
+            { "postId": 1, "price": 273 },
+            { "postId": 2, "price": 179 },
+            { "postId": 3, "price": 299 },
+            { "postId": 4, "price": 315 },
+            { "postId": 5, "price": 342 },
+            { "postId": 6, "price": 340 },
+            { "postId": 7, "price": 168 },
+            { "postId": 101, "price": 223 },
+            { "postId": 102, "price": 471 },
+            { "postId": 103, "price": 471 },
+            { "postId": 104, "price": 478 },
+            { "postId": -1, "price": 230 }
+          ]
+        },
+        {
+          "productId": 802,
+          "name": "Dark Sword",
+          "prices": [
+            { "postId": 1, "price": 742 },
+            { "postId": 2, "price": 493 },
+            { "postId": 3, "price": 751 },
+            { "postId": 4, "price": 741 },
+            { "postId": 5, "price": 770 },
+            { "postId": 6, "price": 814 },
+            { "postId": 7, "price": 475 },
+            { "postId": 101, "price": 585 },
+            { "postId": 102, "price": 979 },
+            { "postId": 103, "price": 949 },
+            { "postId": 104, "price": 973 },
+            { "postId": -1, "price": 846 }
+          ]
+        },
+        {
+          "productId": 803,
+          "name": "Safe",
+          "prices": [
+            { "postId": 1, "price": 11749 },
+            { "postId": 2, "price": 6524 },
+            { "postId": 3, "price": 11690 },
+            { "postId": 4, "price": 11637 },
+            { "postId": 5, "price": 12081 },
+            { "postId": 6, "price": 12397 },
+            { "postId": 7, "price": 6225 },
+            { "postId": 101, "price": 8616 },
+            { "postId": 102, "price": 13120 },
+            { "postId": 103, "price": 13248 },
+            { "postId": 104, "price": 13449 },
+            { "postId": -1, "price": 17145 }
+          ]
+        },
+        {
+          "productId": 804,
+          "name": "Skeleton Ogre Armor",
+          "prices": [
+            { "postId": 1, "price": 19256 },
+            { "postId": 2, "price": 10451 },
+            { "postId": 3, "price": 19323 },
+            { "postId": 4, "price": 19258 },
+            { "postId": 5, "price": 19613 },
+            { "postId": 6, "price": 19709 },
+            { "postId": 7, "price": 9959 },
+            { "postId": 101, "price": 13828 },
+            { "postId": 102, "price": 20314 },
+            { "postId": 103, "price": 20219 },
+            { "postId": 104, "price": 20333 },
+            { "postId": -1, "price": 26309 }
+          ]
+        },
+        {
+          "productId": 805,
+          "name": "Fake Morgant Helmet",
+          "prices": [
+            { "postId": 1, "price": 5585 },
+            { "postId": 2, "price": 2650 },
+            { "postId": 3, "price": 5503 },
+            { "postId": 4, "price": 4126 },
+            { "postId": 5, "price": 5172 },
+            { "postId": 6, "price": 6278 },
+            { "postId": 7, "price": 2527 },
+            { "postId": 101, "price": 3506 },
+            { "postId": 102, "price": 7134 },
+            { "postId": 103, "price": 2966 },
+            { "postId": 104, "price": 6448 },
+            { "postId": -1, "price": 7901 }
+          ]
+        }
+      ]
+    }
+  ]
+}

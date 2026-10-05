@@ -1,0 +1,50 @@
+<Window x:Class="MabiCommerceNewLife.RouteMapWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:MabiCommerceNewLife"
+        Title="Route Map"
+        Width="520" Height="420" MinWidth="400" MinHeight="140"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent" ResizeMode="CanResize"
+        ShowInTaskbar="False" Topmost="True" UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+    <Window.Resources>
+        <Style x:Key="ChevronButton" TargetType="Button">
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="56" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="#01000000">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.8" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.25" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="Root" Background="#01000000" MouseLeftButtonDown="Root_MouseLeftButtonDown">
+        <Canvas x:Name="Surface" ClipToBounds="True" SizeChanged="Surface_SizeChanged" />
+        <Button x:Name="PreviousChevron" Style="{StaticResource ChevronButton}" HorizontalAlignment="Left" VerticalAlignment="Top" Click="PreviousChevron_Click" ToolTip="Previous map on this route">
+            <Image x:Name="PreviousChevronImage" Width="24" Height="56" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+        </Button>
+        <Button x:Name="NextChevron" Style="{StaticResource ChevronButton}" HorizontalAlignment="Left" VerticalAlignment="Top" Click="NextChevron_Click" ToolTip="Next map on this route">
+            <Image x:Name="NextChevronImage" Width="24" Height="56" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+        </Button>
+        <local:OutlinedTextBlock x:Name="NotesText" Foreground="#FFF6D8" OutlineBrush="#E0000000" OutlineThickness="2" FontSize="12" FontWeight="SemiBold"
+                                 TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="36,8" IsHitTestVisible="False" />
+    </Grid>
+</Window>
