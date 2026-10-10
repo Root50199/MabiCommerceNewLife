@@ -39,3 +39,7 @@ CalculatorTests/PriceListOcrRuntimeTests.cs
 tools/*
 !tools/Import-CommerceCatalog.ps1
 !tools/Package-Release.ps1
+
+# Local dev launcher
+Start-Dev.ps1
+package.json

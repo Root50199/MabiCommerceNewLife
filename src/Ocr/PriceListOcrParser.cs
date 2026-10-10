@@ -165,9 +165,13 @@ public static class PriceListOcrParser
     // within 0.3% at stable towns, while Tara (every capture so far) and recently sold-into towns read up to ~6% low;
     // a 9-vs-8 hundreds misread is only ~2% either way, so the low side stays loose. Barter cannot be
     // discounted. A misread leading or middle digit breaks the model, so such rows lose their cross-check.
+    // Larger drops (owner captures: Tara -12.5% and -15.0%) are accepted up to 20% for agreeing reads. Demand
+    // lowers the sale price, not the base value, so a dropped town's own implied base can fall below the game's
+    // minimum (Wooden Craft Tara: 3,355 vs 3,400). Wrong leading digits and higher-than-model prices stay strict.
     public const decimal BarterValueLowTolerance = 0.08m;
     public const decimal BarterValueHighTolerance = 0.015m;
     public const decimal BarterRangeTolerance = 0.01m;
+    public const decimal BarterDemandDropTolerance = 0.20m;
 
     public static IReadOnlyList<PriceListOcrCandidate> ApplyBarterValueCheck(
         IReadOnlyList<PriceListOcrCandidate> candidates, IReadOnlyDictionary<int, decimal> destinationWeights,
@@ -193,9 +197,11 @@ public static class PriceListOcrParser
                 return item;
             var expected = baseValue * weight;
             var deviation = item.Price / expected - 1m;
+            var demandDrop = deviation < -BarterValueLowTolerance && deviation >= -BarterDemandDropTolerance &&
+                item.IsCrossChecked;
             string? problem = !baseInRange
                 ? $"implied base {baseValue:N0} outside game range {minBaseValue:N0}–{maxBaseValue:N0}"
-                : deviation > BarterValueHighTolerance || deviation < -BarterValueLowTolerance
+                : deviation > BarterValueHighTolerance || (deviation < -BarterValueLowTolerance && !demandDrop)
                     ? $"{deviation:+0.0%;-0.0%} from game value model (~{expected:N0})"
                     : null;
             return new PriceListOcrCandidate
@@ -207,7 +213,9 @@ public static class PriceListOcrParser
                 Confidence = item.Confidence,
                 SourceLine = item.SourceLine,
                 PriceSourceText = problem is null
-                    ? $"{item.PriceSourceText}; fits game value"
+                    ? demandDrop
+                        ? $"{item.PriceSourceText}; {deviation:+0.0%;-0.0%} demand drop, verified reads"
+                        : $"{item.PriceSourceText}; fits game value"
                     : $"{item.PriceSourceText.Replace("; verify", string.Empty)}; {problem}; verify",
                 IsCrossChecked = problem is null && item.IsCrossChecked
             };

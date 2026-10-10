@@ -33,6 +33,7 @@ The window recreates the in-game Trading Post using art, icons and fonts taken f
 - **Modifiers**: Commerce Mastery, Letters of Guarantee, merchant ratings, accessory enchants, speed buffs and other bonuses.
 - **Transports**: choose which you own; partner and Alpaca variants are optional.
 - **Weekly reset**: Group and Barter stock can refill automatically at the Thursday reset.
+- **Barter materials**: track what you have and copy the shopping list as a table to paste into Google Sheets.
 - **Trade history** (in Settings): a log of every load sold with the Sell button, with running totals of raw Gold, Ducats and converted total Gold.
 
 Settings, prices and transport choices are saved in `config.json` beside the exe; trade history is in `trade-history.json` beside it. Use a writable folder. Copy these files when upgrading to keep your settings.

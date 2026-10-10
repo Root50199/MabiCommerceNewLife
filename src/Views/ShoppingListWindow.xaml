@@ -93,6 +93,10 @@
             </Grid>
         </Grid>
 
-        <TextBlock x:Name="TotalsText" Canvas.Left="26" Canvas.Top="400" Width="402" Height="20" Foreground="#E9D9B8" FontSize="12" />
+        <TextBlock x:Name="TotalsText" Canvas.Left="26" Canvas.Top="400" Width="267" Height="20" Foreground="#E9D9B8" FontSize="12" />
+        <Button x:Name="CopyForSheetsButton" Canvas.Left="302" Canvas.Top="400" Width="126" Height="20" Padding="3,0"
+                Background="#E7D3AA" BorderBrush="#9C7E4B" BorderThickness="1" Foreground="#4A351A"
+                Content="Copy for Sheets" FontSize="11" FontWeight="Bold" Cursor="Hand" Click="CopyForSheets_Click"
+                ToolTip="Copy this list as a table to paste into Google Sheets" AutomationProperties.Name="Copy shopping list for Google Sheets" />
     </Canvas>
 </Window>
