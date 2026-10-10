@@ -22,6 +22,17 @@ public static class BarterShoppingList
             .OrderBy(line => line.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+    public static string FormatForSpreadsheet(IEnumerable<BarterShoppingLine> lines)
+    {
+        var rows = new List<string> { "Material\tNeeded\tHave\tStill need" };
+        rows.AddRange(lines.Select(line => string.Join("\t",
+            line.Name.Replace("\t", " ").Replace("\r\n", " ").Replace("\r", " ").Replace("\n", " "),
+            line.Needed.ToString(CultureInfo.InvariantCulture),
+            line.Have.ToString(CultureInfo.InvariantCulture),
+            line.StillNeed.ToString(CultureInfo.InvariantCulture))));
+        return string.Join(Environment.NewLine, rows);
+    }
+
     // Blank means none on hand; otherwise only whole numbers (digit-group commas allowed) from 0 to MaxHave.
     public static bool TryParseHave(string? text, out int have)
     {

@@ -308,6 +308,76 @@ public sealed class PriceListOcrParserTests
     }
 
     [TestMethod]
+    public void BarterValueCheckAcceptsAgreeingDemandDropsWithinTheGameRange()
+    {
+        // Prison Ghost Wings from Oasis (range 3,094–4,368): Taillteann and Tara were 9.3% and 12.5% below the model.
+        var prices = new Dictionary<int, decimal>
+        {
+            [1] = 6363, [2] = 6135, [3] = 5695, [4] = 6315, [5] = 6158, [6] = 6066,
+            [7] = 6144, [8] = 6377, [101] = 5857, [102] = 4291, [103] = 4776, [104] = 5809
+        };
+        List<PriceListOcrCandidate> Candidates(bool tailteannAgrees) => prices.Select(pair => new PriceListOcrCandidate
+        {
+            Include = true, PostId = pair.Key, PostName = $"Town {pair.Key}", Price = pair.Value,
+            PriceSourceText = "Barter sale; 8/8 reads agree", IsCrossChecked = pair.Key != 5 || tailteannAgrees
+        }).ToList();
+
+        var checkedCandidates = PriceListOcrParser.ApplyBarterValueCheck(Candidates(true), OasisWeights, 3094, 4368);
+
+        Assert.IsTrue(checkedCandidates.All(item => item.IsCrossChecked && item.Include),
+            string.Join(" | ", checkedCandidates.Select(item => $"{item.PostId}: {item.PriceSourceText}")));
+        StringAssert.Contains(checkedCandidates.Single(item => item.PostId == 6).PriceSourceText, "demand drop");
+
+        var unconfirmed = PriceListOcrParser.ApplyBarterValueCheck(Candidates(false), OasisWeights, 3094, 4368)
+            .Single(item => item.PostId == 5);
+        Assert.IsFalse(unconfirmed.Include);
+        StringAssert.Contains(unconfirmed.PriceSourceText, "game value model");
+
+        // Demand lowers the sale price itself, so this Tara price is accepted even though 6,066 / 1.93 is below a
+        // 3,300 minimum; the 20% cap below still catches wrong leading digits.
+        var belowRange = PriceListOcrParser.ApplyBarterValueCheck(Candidates(true), OasisWeights, 3300, 4368)
+            .Single(item => item.PostId == 6);
+        Assert.IsTrue(belowRange.Include);
+
+        // Wrong leading digits (6,066 -> 4,066 or 8,066) need review even when the range is wide.
+        foreach (var misread in new[] { 4066m, 8066m })
+        {
+            prices[6] = misread;
+            var wrongDigits = PriceListOcrParser.ApplyBarterValueCheck(Candidates(true), OasisWeights, 1000, 9000)
+                .Single(item => item.PostId == 6);
+            Assert.IsFalse(wrongDigits.Include, $"{misread}");
+            Assert.IsFalse(wrongDigits.IsCrossChecked, $"{misread}");
+            StringAssert.Contains(wrongDigits.PriceSourceText, "game value model");
+        }
+    }
+
+    [TestMethod]
+    public void BarterValueCheckAcceptsWoodenCraftTaraDemandDropBelowTheBaseMinimum()
+    {
+        // Native Karu Forest capture: Tara 7,012 is 15% below the model and implies 3,355, under the 3,400 minimum.
+        var weights = new Dictionary<int, decimal>
+        {
+            [1] = 1.93m, [2] = 1.83m, [3] = 1.92m, [4] = 1.89m, [5] = 2.01m, [6] = 2.09m,
+            [7] = 1.8m, [8] = 1.92m, [101] = 1.36m, [102] = 1.5m, [103] = 1.57m, [104] = 1.86m
+        };
+        var prices = new Dictionary<int, decimal>
+        {
+            [1] = 7442, [2] = 7283, [3] = 7415, [4] = 7445, [5] = 7240, [6] = 7012,
+            [7] = 7184, [8] = 7463, [101] = 5411, [102] = 6003, [103] = 6258, [104] = 7362
+        };
+        var candidates = prices.Select(pair => new PriceListOcrCandidate
+        {
+            Include = true, PostId = pair.Key, PostName = $"Town {pair.Key}", Price = pair.Value,
+            PriceSourceText = "Barter sale; 7/7 reads agree", IsCrossChecked = true
+        }).ToList();
+
+        var checkedCandidates = PriceListOcrParser.ApplyBarterValueCheck(candidates, weights, 3400, 4800);
+
+        Assert.IsTrue(checkedCandidates.All(item => item.IsCrossChecked && item.Include),
+            string.Join(" | ", checkedCandidates.Select(item => $"{item.PostId}: {item.PriceSourceText}")));
+    }
+
+    [TestMethod]
     public void BarterValueCheckRejectsMisreadLeadingAndMiddleDigits()
     {
         var checkedCandidates = PriceListOcrParser.ApplyBarterValueCheck(

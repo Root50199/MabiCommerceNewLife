@@ -32,6 +32,23 @@ public sealed class BarterShoppingListTests
     public void EmptyCartGivesAnEmptyList() =>
         Assert.AreEqual(0, BarterShoppingList.Build([], _ => 0).Count);
 
+    [TestMethod]
+    public void SpreadsheetFormatIsTabDelimitedAndUsesUnformattedCounts()
+    {
+        var lines = new[]
+        {
+            new BarterShoppingLine(1, "Wool\tBundle\r\nItem", 1_234_567, 25)
+        };
+
+        var formatted = BarterShoppingList.FormatForSpreadsheet(lines);
+
+        Assert.AreEqual(
+            string.Join(Environment.NewLine,
+                "Material\tNeeded\tHave\tStill need",
+                "Wool Bundle Item\t1234567\t25\t1234542"),
+            formatted);
+    }
+
     [DataTestMethod]
     [DataRow("", 0)]
     [DataRow("  ", 0)]

@@ -44,6 +44,7 @@ public partial class ShoppingListWindow : Window
         CartSummary.Text = lines.Count == 0 ? "No barter goods in the cart." : "For " + summary;
         _rows = lines.Select(line => new ShoppingRow(line)).ToList();
         ShoppingItems.ItemsSource = _rows;
+        CopyForSheetsButton.IsEnabled = _rows.Count > 0;
         UpdateTotals();
         FitToRows();
     }
@@ -69,6 +70,7 @@ public partial class ShoppingListWindow : Window
         Canvas.SetTop(PaperPanel, paperTop);
         PaperPanel.Height = Math.Max(RowHeight, totalsTop - 6 - paperTop);
         Canvas.SetTop(TotalsText, totalsTop);
+        Canvas.SetTop(CopyForSheetsButton, totalsTop);
         if (IsLoaded)
         {
             var bottom = SystemParameters.WorkArea.Bottom;
@@ -116,6 +118,21 @@ public partial class ShoppingListWindow : Window
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void CopyForSheets_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rows.Count == 0) return;
+        var lines = _rows.Select(row => new BarterShoppingLine(row.ItemId, row.Name, row.Needed, row.Have));
+        try
+        {
+            Clipboard.SetText(BarterShoppingList.FormatForSpreadsheet(lines));
+            CopyForSheetsButton.ToolTip = "Shopping list copied; paste it into Google Sheets.";
+        }
+        catch (System.Runtime.InteropServices.ExternalException)
+        {
+            CopyForSheetsButton.ToolTip = "Clipboard is busy; try again.";
+        }
+    }
 
     internal static Brush CreateTileBrush(string fileName)
     {

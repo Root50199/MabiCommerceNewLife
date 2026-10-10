@@ -24,7 +24,13 @@
         </Border>
         <DataGrid x:Name="OcrCandidatesGrid" Grid.Row="1" Margin="0,6,0,6" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single" SelectionUnit="FullRow" HeadersVisibility="Column" FontSize="9" Foreground="#342C20" Background="#F1E4CC" RowBackground="#F4E8D0" AlternatingRowBackground="#EBDAB9" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#B8A57C" VerticalGridLinesBrush="#C8B68F">
             <DataGrid.Columns>
-                <DataGridCheckBoxColumn Header="APPLY" Binding="{Binding Include, UpdateSourceTrigger=PropertyChanged}" Width="58" />
+                <DataGridTemplateColumn Header="APPLY" Width="58">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding Include, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
                 <DataGridTextColumn Header="TOWN" Binding="{Binding PostName}" IsReadOnly="True" Width="1.1*" />
                 <DataGridTextColumn Header="PRICE" Binding="{Binding Price, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:N0}}" Width="100" />
                 <DataGridTextColumn Header="PRICE SOURCE" Binding="{Binding PriceSourceText}" IsReadOnly="True" Width="300" />
