@@ -8,6 +8,26 @@ namespace CalculatorTests;
 public sealed class UserGuideTests
 {
     [TestMethod]
+    public void SharingStatusHasBottomLeftDotAndThemedScrollableRetryPanel()
+    {
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var main = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", "MainWindow.xaml"));
+        var button = main.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "CommunityStatusButton");
+        Assert.AreEqual("24", (string?)button.Attribute("Canvas.Left"));
+        Assert.AreEqual("8", (string?)button.Attribute("Canvas.Bottom"));
+        Assert.AreEqual("CommunityStatus_Click", (string?)button.Attribute("Click"));
+        Assert.IsTrue(button.Descendants().Any(element => element.Name.LocalName == "Ellipse"));
+        var panel = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", "CommunityStatusWindow.xaml"));
+        Assert.AreEqual("None", (string?)panel.Root!.Attribute("WindowStyle"));
+        Assert.IsTrue(panel.Descendants().Any(element => element.Name.LocalName == "ScrollViewer"));
+        var retry = panel.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "RetryButton");
+        Assert.AreEqual("{DynamicResource CommerceActionButton}", (string?)retry.Attribute("Style"));
+        var close = panel.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "CloseButton");
+        Assert.AreEqual("True", (string?)close.Attribute("IsCancel"));
+        Assert.AreEqual("True", (string?)close.Attribute("IsDefault"));
+    }
+
+    [TestMethod]
     public void SharingConsentIsThemedConciseAndDefaultsToCancel()
     {
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -19,6 +39,7 @@ public sealed class UserGuideTests
         StringAssert.Contains(summary, "30 days");
         StringAssert.Contains(summary, "price history stays");
         StringAssert.Contains(summary, "screenshots");
+        StringAssert.Contains(summary, "ID and token stay saved locally");
         Assert.IsNull(Named("PrivacyDetails").Attribute("IsExpanded"));
         Assert.AreEqual("#E9D9B8", (string?)Named("ConsentSummary").Attribute("Foreground"));
         Assert.AreEqual("#E9D9B8", (string?)Named("PrivacyDetails").Attribute("Foreground"));
@@ -245,20 +266,27 @@ public sealed class UserGuideTests
         Assert.AreEqual("3. Goods", UserGuide.Topics[2].Title);
         Assert.IsFalse(UserGuide.Topics[2].TourText.Contains("stock", StringComparison.OrdinalIgnoreCase));
         CollectionAssert.AreEquivalent(new[] { "AutoSelectedStartModeButton", "AutoBestOverallModeButton", "AutoCalculateButton" },
-            UserGuide.Topics[8].Targets);
-        CollectionAssert.Contains(UserGuide.Topics[9].Targets, "AutoLetterOverridePicker");
+            UserGuide.Topics[11].Targets);
+        CollectionAssert.Contains(UserGuide.Topics[12].Targets, "AutoLetterOverridePicker");
         CollectionAssert.Contains(UserGuide.Topics[5].Targets, "ReadPriceListButton");
         CollectionAssert.Contains(UserGuide.Topics[5].Targets, "GroupReadPriceListButton");
-        Assert.IsFalse(UserGuide.Topics[10].TourText.Contains("never sells", StringComparison.OrdinalIgnoreCase));
-        Assert.AreEqual(GuideSurface.RouteMap, UserGuide.Topics[12].Surface);
-        CollectionAssert.Contains(UserGuide.Topics[11].Targets, "RouteMapButton");
-        CollectionAssert.AreEqual(new[] { "PaperPanel", "LetterPicker" }, UserGuide.Topics[16].Targets);
-        Assert.AreEqual(GuideSurface.Materials, UserGuide.Topics[15].Surface);
-        CollectionAssert.AreEqual(new[] { "ShoppingListButton" }, UserGuide.Topics[17].Targets);
-        Assert.AreEqual(GuideSurface.Settings, UserGuide.Topics[18].Surface);
-        Assert.AreEqual("20. Help bubbles", UserGuide.Topics[19].Title);
-        Assert.IsTrue(UserGuide.Topics[19].Targets.Length >= 3);
-        Assert.AreEqual(21, UserGuide.Topics.Count);
+        Assert.IsFalse(UserGuide.Topics[13].TourText.Contains("never sells", StringComparison.OrdinalIgnoreCase));
+        Assert.AreEqual(GuideSurface.RouteMap, UserGuide.Topics[15].Surface);
+        CollectionAssert.Contains(UserGuide.Topics[14].Targets, "RouteMapButton");
+        CollectionAssert.AreEqual(new[] { "PaperPanel", "LetterPicker" }, UserGuide.Topics[19].Targets);
+        Assert.AreEqual(GuideSurface.Materials, UserGuide.Topics[18].Surface);
+        CollectionAssert.AreEqual(new[] { "ShoppingListButton" }, UserGuide.Topics[20].Targets);
+        Assert.AreEqual(GuideSurface.Settings, UserGuide.Topics[21].Surface);
+        Assert.AreEqual("23. Help bubbles", UserGuide.Topics[22].Title);
+        Assert.IsTrue(UserGuide.Topics[22].Targets.Length >= 3);
+        Assert.AreEqual(24, UserGuide.Topics.Count);
+        Assert.AreEqual("7. Enable scanned price sharing", UserGuide.Topics[6].Title);
+        Assert.AreEqual(GuideSurface.Settings, UserGuide.Topics[6].Surface);
+        CollectionAssert.Contains(UserGuide.Topics[6].Targets, "CommunitySharingCheckBox");
+        CollectionAssert.Contains(UserGuide.Topics[7].Targets, "CommunityRefreshButton");
+        CollectionAssert.AreEqual(new[] { "CommunityStatusButton" }, UserGuide.Topics[8].Targets);
+        for (var index = 0; index < UserGuide.Topics.Count; index++)
+            StringAssert.StartsWith(UserGuide.Topics[index].Title, $"{index + 1}. ");
         foreach (var topic in UserGuide.Topics)
             Assert.IsFalse(topic.TourText.Contains("during this tour", StringComparison.OrdinalIgnoreCase));
     }

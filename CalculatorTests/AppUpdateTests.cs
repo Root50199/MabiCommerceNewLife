@@ -119,6 +119,7 @@ public sealed class AppUpdateTests
     [DataRow(@"..\outside.exe")]
     [DataRow(@"Data\..\config.json")]
     [DataRow("config.json")]
+    [DataRow("community-credentials.json")]
     [DataRow("trade-history.json")]
     [DataRow(@"Data\file:stream")]
     [DataRow(@"Data\bad.\file")]

@@ -602,7 +602,7 @@
                     </Grid>
                     <StackPanel x:Name="SharingSettingsRow" Style="{StaticResource ScannerSuboption}" Margin="16,0,0,0" Height="24" Orientation="Horizontal" VerticalAlignment="Center" IsEnabled="{Binding IsChecked, ElementName=ScreenReaderModeCheckBox}">
                         <TextBlock Text="Scanned price sharing" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
-                        <local:InfoBubble x:Name="CommunitySharingInfo" Message="Enables sending and receiving scanned price and Inventory supply data. Automatically checked scans and complete scans confirmed in OCR review are shared. Edited source, stock and price lines are flagged manual; unchanged lines are reviewed OCR. Reviewed prices can update other planners. This choice is saved for the current backend and sharing policy; a change requires fresh consent. Credentials stay in memory. Turning scanner mode off also turns sharing off. No character or account data is transmitted or recorded. No images, raw OCR or personal weekly allowance are sent. Private IP logs and new observations' installation links expire after 30 days; pre-policy links remain unchanged. Unused expired installation credentials are deleted. Individual price/stock history remains indefinitely. Turning off saves newest applied values locally, without resetting supply or weekly limits. Refresh once per minute; no background polling. User and Dev builds use the same Cloudflare-hosted online service." TipType="Information" Margin="2,0,0,0" VerticalAlignment="Center" />
+                        <local:InfoBubble x:Name="CommunitySharingInfo" Message="Enables sending and receiving scanned price and Inventory supply data. Automatically checked scans and complete scans confirmed in OCR review are shared. Edited source, stock and price lines are flagged manual; unchanged lines are reviewed OCR. Reviewed prices can update other planners. This choice is saved for the current backend and sharing policy; a change requires fresh consent. A random installation ID and authentication token are saved locally beside the app and reused across launches. Keep the credentials file private; OFF keeps it but stops transfers. Turning scanner mode off also turns sharing off. No character or account data is transmitted or recorded. No images, raw OCR or personal weekly allowance are sent. Private IP logs and new observations' installation links expire after 30 days; pre-policy links remain unchanged. Unused expired installation credentials are deleted. Individual price/stock history remains indefinitely. Turning off saves newest applied values locally, without resetting supply or weekly limits. Refresh once per minute; no background polling. User and Dev builds use the same Cloudflare-hosted online service." TipType="Information" Margin="2,0,0,0" VerticalAlignment="Center" />
                         <CheckBox x:Name="CommunitySharingCheckBox" AutomationProperties.Name="Scanned price sharing" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="CommunitySharing_Changed" Unchecked="CommunitySharing_Changed" />
                     </StackPanel>
                     <Grid Height="24" Margin="0,4,0,0">
@@ -1200,6 +1200,18 @@
 
             <Button x:Name="PurchaseActionButton" Canvas.Left="469" Canvas.Top="419" Width="74" Height="98" Style="{StaticResource CommerceActionButton}" Click="AddToLoad_Click" Content="Purchase" />
             <Button x:Name="SellActionButton" Canvas.Left="469" Canvas.Top="419" Width="74" Height="98" Style="{StaticResource CommerceActionButton}" Click="SellLoad_Click" Content="Sell" Visibility="Collapsed" />
+            <Button x:Name="CommunityStatusButton" Canvas.Left="24" Canvas.Bottom="8" Width="20" Height="20"
+                    Panel.ZIndex="101" Background="Transparent" BorderThickness="0" Padding="4"
+                    Click="CommunityStatus_Click" Cursor="Hand" AutomationProperties.Name="Price sharing OFF.">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+                <Ellipse x:Name="CommunityStatusDot" Fill="Gray" Stroke="#30291D" StrokeThickness="1" />
+            </Button>
             <StackPanel x:Name="StatusPanel" Canvas.Left="112.5" Canvas.Bottom="4" Width="600" Panel.ZIndex="100" Visibility="Collapsed">
                 <ScrollViewer x:Name="StatusErrorScroll" MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <ItemsControl x:Name="StatusNotifications">

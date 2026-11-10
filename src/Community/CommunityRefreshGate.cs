@@ -5,6 +5,7 @@ public sealed class CommunityRefreshGate(TimeProvider? timeProvider = null)
     private readonly TimeProvider _clock = timeProvider ?? TimeProvider.System;
     private long? _lastAttempt;
     private bool _busy;
+    public bool IsBusy => _busy;
     public TimeSpan Remaining
     {
         get
@@ -25,4 +26,5 @@ public sealed class CommunityRefreshGate(TimeProvider? timeProvider = null)
     }
 
     public void Complete() => _busy = false;
+    public void RecordRetry() => _lastAttempt = _clock.GetTimestamp();
 }

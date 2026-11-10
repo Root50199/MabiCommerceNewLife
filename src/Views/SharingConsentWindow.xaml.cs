@@ -22,8 +22,11 @@ public partial class SharingConsentWindow : Window
             "Unused expired credentials are deleted. Price/stock history remains indefinitely; " +
             "turning sharing off does not erase it. Cloudflare platform retention/backups are separate.\n\n" +
             "No character/account data, screenshots, raw OCR or personal weekly allowance is sent. " +
-            "Credentials stay in memory. This choice is saved for this service/policy and reconnects on launch. " +
-            "Turning sharing off stops transfers and keeps the newest applied values locally.";
+            "A random installation ID and authentication token are saved unencrypted beside the app in community-credentials.json " +
+            "and reused across launches. No hardware fingerprint or game identity is used. Keep this file private; copying it shares the installation identity. " +
+            "The backend stores only a hash of the token. This choice is saved for this service/policy and reconnects on launch. " +
+            "Turning sharing off stops transfers and keeps credentials and newest applied values locally. " +
+            "Saved credentials alone never enable sharing.";
         Loaded += (_, _) => DeclineSharingButton.Focus();
     }
 

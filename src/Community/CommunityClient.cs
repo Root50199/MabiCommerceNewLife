@@ -22,10 +22,12 @@ public sealed record CommunityObservation(long Sequence, long ReceivedAt, string
 public sealed record CommunitySnapshot(IReadOnlyList<CommunityObservation> Observations, long Revision, long NextCursor = 0);
 public sealed record CommunitySyncPage(IReadOnlyList<CommunityObservation> Observations, long NextCursor, long Revision, bool HasMore);
 
-public sealed class CommunityApiException(string message, System.Net.HttpStatusCode status, string code)
+public sealed class CommunityApiException(string message, System.Net.HttpStatusCode status, string code,
+    TimeSpan? retryAfter = null)
     : HttpRequestException(message, null, status)
 {
     public string Code { get; } = code;
+    public TimeSpan? RetryAfter { get; } = retryAfter;
 }
 
 public sealed class CommunityClient : IDisposable
@@ -42,10 +44,11 @@ public sealed class CommunityClient : IDisposable
     private Guid _session = Guid.NewGuid();
     private readonly SemaphoreSlim _syncLock = new(1, 1);
     private CommunitySnapshot? _snapshot;
+    private readonly CommunityCredentialStore? _credentials;
     public bool IsConnected => _token is not null;
     public Uri Endpoint => _http.BaseAddress!;
 
-    public CommunityClient(string endpoint, HttpMessageHandler? handler = null)
+    public CommunityClient(string endpoint, HttpMessageHandler? handler = null, string? credentialPath = null)
     {
         _http = new HttpClient(handler ?? new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false })
         {
@@ -54,6 +57,7 @@ public sealed class CommunityClient : IDisposable
             MaxResponseContentBufferSize = 2 * 1024 * 1024
         };
         _http.DefaultRequestHeaders.Add("X-Community-Format", "normalized-v2");
+        _credentials = credentialPath is null ? null : new CommunityCredentialStore(credentialPath);
     }
 
     public static Uri ValidateEndpoint(string endpoint)
@@ -93,15 +97,36 @@ public sealed class CommunityClient : IDisposable
         if (IsConnected) throw new InvalidOperationException("Already connected.");
         if (acceptedPolicy != new CommunityPrivacy("2026-11-09", 30, "indefinite"))
             throw new InvalidDataException("Unsupported consent policy.");
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_credentials?.Load(Endpoint.AbsoluteUri, acceptedPolicy.ConsentVersion) is { } saved)
+        {
+            // Existing backend supports authenticated tickets, not a session-check endpoint.
+            // Verify saved authorization without reading prices or submitting an observation.
+            using var verify = JsonRequest(HttpMethod.Post, "v1/scan-tickets", new { });
+            verify.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", saved.Token);
+            var ticket = await SendAsync<TicketResponse>(verify, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ValidateTicket(ticket);
+            _token = saved.Token;
+            _session = Guid.NewGuid();
+            return;
+        }
         using var request = JsonRequest(HttpMethod.Post, "v1/installations",
             new { consentVersion = acceptedPolicy.ConsentVersion, acceptPrivacy = true });
         var registration = await SendAsync<Registration>(request, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!Guid.TryParse(registration.InstallationId, out _) ||
+        if (!Guid.TryParse(registration.InstallationId, out var installationId) || installationId == Guid.Empty ||
             registration.ConsentVersion != acceptedPolicy.ConsentVersion ||
             registration.Token is null || registration.Token.Length != 64 ||
             registration.Token.Any(c => !char.IsAsciiHexDigitLower(c)))
             throw new InvalidDataException("Backend returned invalid registration credentials.");
+        _credentials?.Save(new CommunityCredentialStore.Credentials
+        {
+            Endpoint = Endpoint.AbsoluteUri,
+            ConsentVersion = registration.ConsentVersion,
+            InstallationId = registration.InstallationId,
+            Token = registration.Token
+        });
         _token = registration.Token;
         _session = Guid.NewGuid();
     }
@@ -119,8 +144,7 @@ public sealed class CommunityClient : IDisposable
         var session = _session;
         using var request = Authorized(HttpMethod.Post, "v1/scan-tickets", new { });
         var ticket = await SendAsync<TicketResponse>(request, cancellationToken);
-        if (!Guid.TryParse(ticket.ScanId, out _) || ticket.ExpiresAt <= DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
-            throw new InvalidDataException("Backend returned an invalid or expired scan ticket.");
+        ValidateTicket(ticket);
         if (!IsConnected || session != _session) throw new InvalidOperationException("Sharing was disconnected.");
         return new CommunityTicket(ticket.ScanId, ticket.ExpiresAt, session);
     }
@@ -247,8 +271,16 @@ public sealed class CommunityClient : IDisposable
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken),
             cancellationToken: cancellationToken);
         var code = document.RootElement.GetProperty("error").GetString();
+        TimeSpan? retryAfter = null;
+        if (response.Headers.TryGetValues("Retry-After", out var values) &&
+            System.Net.Http.Headers.RetryConditionHeaderValue.TryParse(
+                string.Join(", ", values), out var retry))
+        {
+            retryAfter = retry.Delta ?? retry.Date - (response.Headers.Date ?? DateTimeOffset.UtcNow);
+            if (retryAfter < TimeSpan.Zero) retryAfter = TimeSpan.Zero;
+        }
         throw new CommunityApiException($"Community backend returned {(int)response.StatusCode}: {code}. Local planning is unchanged.",
-            response.StatusCode, code ?? "unknown_error");
+            response.StatusCode, code ?? "unknown_error", retryAfter);
     }
 
     public void Dispose()
@@ -259,4 +291,11 @@ public sealed class CommunityClient : IDisposable
 
     private sealed record Registration(string InstallationId, string Token, string ConsentVersion);
     private sealed record TicketResponse(string ScanId, long ExpiresAt);
+
+    private static void ValidateTicket(TicketResponse ticket)
+    {
+        if (!Guid.TryParse(ticket.ScanId, out var id) || id == Guid.Empty ||
+            ticket.ExpiresAt <= DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
+            throw new InvalidDataException("Backend returned an invalid or expired scan ticket.");
+    }
 }

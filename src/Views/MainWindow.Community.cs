@@ -24,7 +24,7 @@ public partial class MainWindow
     private string? _communityEndpoint;
     private const int CommunityBuyKey = int.MinValue;
     private const int CommunityStockKey = int.MinValue + 1;
-    private const string CommunitySharingConsentVersion = "reviewed-scans-v1";
+    private const string CommunitySharingConsentVersion = "persistent-installation-v1";
 
     private CommunityMarketValue CommunityValue(int productId, int postId, decimal currentValue)
     {
@@ -82,7 +82,7 @@ public partial class MainWindow
         _initializing = true;
         CommunitySharingCheckBox.IsChecked = true;
         _initializing = false;
-        await ConnectCommunitySharingAsync();
+        await ConnectCommunitySharingAsync(startup: true);
     }
 
     private async void CommunitySharing_Changed(object sender, RoutedEventArgs e)
@@ -115,22 +115,34 @@ public partial class MainWindow
         await ConnectCommunitySharingAsync();
     }
 
-    private async Task ConnectCommunitySharingAsync()
+    private async Task ConnectCommunitySharingAsync(bool startup = false)
     {
+        if (_communityConnecting || _helpClosing || CommunitySharingCheckBox.IsChecked != true) return;
         _communityConnecting = true;
-        CommunitySharingCheckBox.IsEnabled = false;
+        SetCommunityHealth(CommunityHealth.Waiting, "Connecting price sharing...");
         RefreshCommunityButtonState();
         var sharing = new CancellationTokenSource();
         _communitySharing = sharing;
         var cancellationToken = sharing.Token;
         try
         {
-            _communityClient ??= new CommunityClient(CommunityClient.DefaultEndpoint);
+            _communityClient ??= new CommunityClient(CommunityClient.DefaultEndpoint,
+                credentialPath: Path.Combine(AppContext.BaseDirectory, CommunityCredentialStore.FileName));
             SetCommunityEndpoint(_communityClient.Endpoint.AbsoluteUri);
-            var policy = await _communityClient.GetPrivacyAsync(cancellationToken);
-            await _communityClient.ConnectAsync(policy, cancellationToken);
+            var policy = await CommunityRetry.RunAsync(
+                () => _communityClient.GetPrivacyAsync(cancellationToken), startup, true,
+                CommunityRetryWaiting, cancellationToken);
+            await CommunityRetry.RunAsync(async () =>
+            {
+                await _communityClient.ConnectAsync(policy, cancellationToken);
+                return true;
+            }, startup, false, CommunityRetryWaiting, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            if (!_helpClosing) SetStatus("Price sharing ON. SCAN sends checked observations; REFRESH receives and applies prices.");
+            if (!_helpClosing)
+            {
+                CommunityHealthy();
+                SetStatus("Price sharing ON. SCAN sends checked observations; REFRESH receives and applies prices.");
+            }
         }
         catch (Exception exception) when (IsCommunityError(exception))
         {
@@ -138,16 +150,17 @@ public partial class MainWindow
             StopCommunitySharing();
             if (!_helpClosing)
             {
-                SetStatus($"Could not connect price sharing; your ON preference is saved. Toggle sharing off/on to retry. {CommunityNetworkError(exception)}", true);
+                CommunityFailed(exception);
+                SetStatus("Price sharing could not connect; ON preference saved. Click the bottom-left status dot for details and retry.", true);
             }
         }
         finally
         {
-            _communityConnecting = false;
-            if (!_helpClosing)
+            if (ReferenceEquals(_communitySharing, sharing) || _communitySharing is null)
             {
-                CommunitySharingCheckBox.IsEnabled = true;
-                RefreshCommunityButtonState();
+                _communityConnecting = false;
+                _communityAutoRetry = false;
+                if (!_helpClosing) RefreshCommunityButtonState();
             }
         }
     }
@@ -156,9 +169,11 @@ public partial class MainWindow
     {
         var sharing = _communitySharing;
         _communitySharing = null;
+        _communityConnecting = false;
         sharing?.Cancel();
         sharing?.Dispose();
         _communityClient?.Disconnect();
+        SetCommunityHealth(CommunityHealth.Off, "Price sharing OFF.");
         RetainCommunityValues();
         if (!_helpClosing)
         {
@@ -175,13 +190,15 @@ public partial class MainWindow
 
     private void RefreshCommunityButtonState()
     {
-        CommunityRefreshButton.IsEnabled = CommunitySharingEnabled && _communityRefreshGate.CanRefresh;
+        RefreshCommunityHealth();
+        CommunityRefreshButton.IsEnabled = CommunitySharingEnabled && _communityRefreshGate.CanRefresh &&
+            CommunityWaitRemaining == TimeSpan.Zero && !_communityAutoRetry && !_communityChecking;
         var remaining = (int)Math.Ceiling(_communityRefreshGate.Remaining.TotalSeconds);
         CommunityRefreshInfo.Message = !CommunitySharingEnabled
             ? _communityConnecting
                 ? "Connecting scanned price sharing. Refresh will be enabled after the connection succeeds."
                 : _plannerPreferences.CommunitySharingEnabled
-                    ? "Scanned price sharing is saved ON but is not connected. Toggle sharing off/on in Settings > Calculator Behavior to retry. Refresh is limited to once per minute."
+                    ? "Scanned price sharing is saved ON but is not connected. Click the bottom-left status dot for details and retry. Refresh is limited to once per minute."
                     : "Receives scanned price and Inventory supply data and applies the newest values. Enabled when Screen reader mode and Scanned price sharing are turned on in Settings > Calculator Behavior. Refresh is limited to once per minute."
             : remaining > 0
                 ? $"Receives and applies newest shared prices. Next refresh in {remaining} seconds. The one-minute limit applies across all goods and tabs, including failed attempts."
@@ -191,16 +208,23 @@ public partial class MainWindow
     private async void CommunityRefresh_Click(object sender, RoutedEventArgs e)
     {
         if (!CommunitySharingEnabled || _communitySharing is not { } sharing || _communityClient is not { } client ||
+            CommunityWaitRemaining > TimeSpan.Zero || _communityAutoRetry || _communityChecking ||
             !_communityRefreshGate.TryBegin()) return;
         var cancellationToken = sharing.Token;
         RefreshCommunityButtonState();
         SetStatus("Receiving shared scanned prices...");
         try
         {
-            var snapshot = await client.SyncAsync(cancellationToken);
+            var snapshot = await CommunityRetry.RunAsync(() =>
+            {
+                _communityRefreshGate.RecordRetry();
+                return client.SyncAsync(cancellationToken);
+            }, false, false, (exception, delay) => CommunityRetryWaiting(exception, delay, refresh: true), cancellationToken,
+                minimumWait: () => _communityRefreshGate.Remaining);
             cancellationToken.ThrowIfCancellationRequested();
             if (_helpClosing || !ReferenceEquals(_communitySharing, sharing)) return;
             ApplyCommunitySnapshot(snapshot);
+            CommunityHealthy();
             SetStatus(_scanCancellation is null
                 ? $"Refreshed shared prices for {snapshot.Observations.Count} goods. Newest values applied."
                 : "Shared prices received; applying after the current scan ends.");
@@ -208,25 +232,55 @@ public partial class MainWindow
         catch (Exception exception) when (IsCommunityError(exception))
         {
             if (!_helpClosing && ReferenceEquals(_communitySharing, sharing))
+            {
+                CommunityFailed(exception, refresh: true);
                 SetStatus($"Price refresh failed; current values kept. {CommunityNetworkError(exception)}", true);
+            }
         }
         finally
         {
             _communityRefreshGate.Complete();
-            if (!_helpClosing) RefreshCommunityButtonState();
+            if (ReferenceEquals(_communitySharing, sharing))
+            {
+                _communityAutoRetry = false;
+                if (!_helpClosing) RefreshCommunityButtonState();
+            }
         }
     }
 
     private async Task<CommunityTicket?> BeginCommunityScanAsync(CancellationToken cancellationToken)
     {
         if (!CommunitySharingEnabled || _communitySharing is not { } sharing || _communityClient is not { } client) return null;
+        if (CommunityWaitRemaining > TimeSpan.Zero || _communityAutoRetry || _communityChecking)
+        {
+            SetStatus("Scan remains local while sharing waits. Click the bottom-left status dot for details.");
+            return null;
+        }
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, sharing.Token);
-        try { return await client.BeginScanAsync(linked.Token); }
+        try
+        {
+            var ticket = await CommunityRetry.RunAsync(() => client.BeginScanAsync(linked.Token), false, false,
+                CommunityRetryWaiting, linked.Token);
+            linked.Token.ThrowIfCancellationRequested();
+            CommunityHealthy();
+            return ticket;
+        }
         catch (Exception exception) when (IsCommunityError(exception))
         {
-            if (!_helpClosing && ReferenceEquals(_communitySharing, sharing))
+            if (!linked.IsCancellationRequested && !_helpClosing && ReferenceEquals(_communitySharing, sharing))
+            {
+                CommunityFailed(exception);
                 SetStatus($"Scan remains local: price sharing ticket failed. {CommunityNetworkError(exception)}", true);
+            }
             return null;
+        }
+        finally
+        {
+            if (ReferenceEquals(_communitySharing, sharing))
+            {
+                _communityAutoRetry = false;
+                if (!_helpClosing) RefreshCommunityButtonState();
+            }
         }
     }
 
@@ -253,18 +307,25 @@ public partial class MainWindow
             // Validate the review first, then renew its ticket within the same opted-in session.
             if (accepted.Review is not null)
             {
-                ticket = await client.BeginScanAsync(linked.Token);
+                ticket = await BeginCommunityScanAsync(linked.Token);
+                if (ticket is null) return;
                 scan = scan with { ScanId = ticket.ScanId };
             }
             var receipt = await client.UploadAsync(ticket, scan, linked.Token);
             if (!_helpClosing && ReferenceEquals(_communitySharing, sharing))
+            {
+                CommunityHealthy();
                 SetStatus($"Scan shared: {scan.Prices.Count} prices, stock {scan.Stock:N0} (observation {receipt.Sequence})" +
                     (scan.Review is { } verified ? $"; reviewed, {verified.ManualPostIds.Count} manually edited lines." : "."));
+            }
         }
         catch (Exception exception) when (IsCommunityError(exception))
         {
-            if (!_helpClosing && ReferenceEquals(_communitySharing, sharing))
+            if (!linked.IsCancellationRequested && !_helpClosing && ReferenceEquals(_communitySharing, sharing))
+            {
+                CommunityFailed(exception);
                 SetStatus($"Scan remains local; not shared: {CommunityNetworkError(exception)}", true);
+            }
         }
     }
 
@@ -449,7 +510,7 @@ public partial class MainWindow
     }
 
     private static bool IsCommunityError(Exception exception) =>
-        exception is HttpRequestException or IOException or JsonException or InvalidOperationException or
+        exception is HttpRequestException or IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or
             ArgumentException or OperationCanceledException or KeyNotFoundException or FormatException or OverflowException;
 
     private static string CommunityNetworkError(Exception exception) =>
