@@ -7,6 +7,8 @@ publish/
 dist/
 config.json
 config.json.tmp
+community-credentials.json
+community-credentials.json.*.tmp
 trade-history.json
 trade-history.json.tmp
 *_wpftmp.csproj

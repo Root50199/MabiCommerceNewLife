@@ -235,6 +235,34 @@ public sealed class CommunityClientTests
     private static HttpResponseMessage Registration() =>
         Json(new { installationId = Guid.NewGuid().ToString(), token = Token, consentVersion = Policy.ConsentVersion });
 
+    [TestMethod]
+    public async Task RetryAfterSecondsDatesAndInvalidHeadersArePreservedSafely()
+    {
+        var serverTime = new DateTimeOffset(2026, 11, 10, 0, 0, 0, TimeSpan.Zero);
+        foreach (var (header, expected) in new (string?, TimeSpan?)[]
+        {
+            ("25", TimeSpan.FromSeconds(25)), ("0", TimeSpan.Zero),
+            (serverTime.AddSeconds(40).ToString("R"), TimeSpan.FromSeconds(40)),
+            (serverTime.AddSeconds(-10).ToString("R"), TimeSpan.Zero),
+            (null, null), ("garbage", null), ("-5", null), ("999999999999999999999", null),
+            ("10, 20", null)
+        })
+        {
+            using var handler = new StubHandler((_, _) =>
+            {
+                var response = Json(new { error = "rate_limited" }, HttpStatusCode.TooManyRequests);
+                response.Headers.Date = serverTime;
+                if (header is not null) response.Headers.TryAddWithoutValidation("Retry-After", header);
+                return response;
+            });
+            using var client = new CommunityClient("http://127.0.0.1:8787", handler);
+            var error = await Assert.ThrowsExceptionAsync<CommunityApiException>(() => client.ConnectAsync(Policy, default));
+            Assert.AreEqual(expected, error.RetryAfter, header ?? "missing");
+            Assert.AreEqual("rate_limited", error.Code);
+            Assert.IsFalse(client.IsConnected);
+        }
+    }
+
     private static HttpResponseMessage Json(object value, HttpStatusCode status = HttpStatusCode.OK) =>
         new(status) { Content = new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, "application/json") };
 

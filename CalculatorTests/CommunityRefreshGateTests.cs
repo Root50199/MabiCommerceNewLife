@@ -52,6 +52,21 @@ public sealed class CommunityRefreshGateTests
         Assert.AreEqual(TimeSpan.FromSeconds(60), gate.Remaining);
     }
 
+    [TestMethod]
+    public void AutomaticRetryRestartsCooldownAndKeepsBusyUntilCompleted()
+    {
+        var clock = new ManualClock();
+        var gate = new CommunityRefreshGate(clock);
+        gate.TryBegin();
+        clock.Advance(TimeSpan.FromMinutes(1));
+        gate.RecordRetry();
+        Assert.IsTrue(gate.IsBusy);
+        Assert.AreEqual(TimeSpan.FromMinutes(1), gate.Remaining);
+        gate.Complete();
+        Assert.IsFalse(gate.IsBusy);
+        Assert.IsFalse(gate.CanRefresh);
+    }
+
     private sealed class ManualClock : TimeProvider
     {
         private long _timestamp;
