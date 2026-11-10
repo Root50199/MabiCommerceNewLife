@@ -9,6 +9,14 @@ namespace MabiCommerceNewLife;
 public partial class OcrPriceReviewWindow : Window
 {
     private readonly ObservableCollection<PriceListOcrCandidate> _candidates;
+    private readonly Dictionary<int, decimal> _originalPrices;
+    private readonly decimal? _originalSourcePrice;
+    private readonly int? _originalStock;
+    public CommunityReview ReviewProvenance => new(
+        AcceptedSourcePrice is { } source && source != _originalSourcePrice,
+        AcceptedStock is { } stock && stock != _originalStock,
+        AcceptedCandidates.Where(c => c.Price != _originalPrices[c.PostId])
+            .Select(c => c.PostId == -1 ? 0 : c.PostId).Order().ToArray());
 
     public IReadOnlyList<PriceListOcrCandidate> AcceptedCandidates => _candidates
         .Where(candidate => candidate.Include && candidate.Price > 0)
@@ -25,19 +33,29 @@ public partial class OcrPriceReviewWindow : Window
         }
     }
 
+    public int? AcceptedStock => ApplyStockCheck.IsChecked == true &&
+        int.TryParse(StockInput.Text, NumberStyles.AllowThousands, CultureInfo.CurrentCulture, out var stock) && stock >= 0
+            ? stock : null;
+
     public OcrPriceReviewWindow(string productName, string sourcePostName,
         IEnumerable<PriceListOcrCandidate> candidates, float meanConfidence, OcrSourcePrice? sourcePrice = null,
-        bool showSourcePrice = true)
+        bool showSourcePrice = true, OcrStockRead? stock = null)
     {
         InitializeComponent();
         _candidates = new ObservableCollection<PriceListOcrCandidate>(candidates);
+        _originalPrices = _candidates.ToDictionary(c => c.PostId, c => c.Price);
+        _originalSourcePrice = sourcePrice?.Price;
+        _originalStock = stock?.Count;
         OcrCandidatesGrid.ItemsSource = _candidates;
         OcrConfidenceText.Text = $"{productName} from {sourcePostName} · OCR confidence {meanConfidence:N1}% · review before applying.";
         SourcePriceInput.Text = sourcePrice?.Price.ToString("N0", CultureInfo.CurrentCulture) ?? string.Empty;
         SourcePriceText.Text = sourcePrice?.SourceText ?? "Source price not recognized";
-        ApplySourcePriceCheck.IsEnabled = showSourcePrice && sourcePrice is not null;
+        ApplySourcePriceCheck.IsEnabled = showSourcePrice;
         ApplySourcePriceCheck.IsChecked = showSourcePrice && sourcePrice is not null;
         SourcePricePanel.Visibility = showSourcePrice ? Visibility.Visible : Visibility.Collapsed;
+        StockInput.Text = stock?.Count?.ToString("N0", CultureInfo.CurrentCulture) ?? string.Empty;
+        StockText.Text = stock?.SourceText ?? "Inventory stock not recognized; unchanged unless you enter and select an update.";
+        ApplyStockCheck.IsChecked = stock is { Count: not null, IsReliable: true };
     }
 
     private void Apply_Click(object sender, RoutedEventArgs e)
@@ -52,6 +70,11 @@ public partial class OcrPriceReviewWindow : Window
         if (ApplySourcePriceCheck.IsChecked == true && AcceptedSourcePrice is null)
         {
             ReviewStatusText.Text = "Enter a valid source price or uncheck its update.";
+            return;
+        }
+        if (ApplyStockCheck.IsChecked == true && AcceptedStock is null)
+        {
+            ReviewStatusText.Text = "Enter a whole, non-negative stock count or uncheck its update.";
             return;
         }
         DialogResult = true;

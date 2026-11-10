@@ -1,5 +1,16 @@
 namespace MabiCommerceNewLife;
 
+public static class CommerceExpansionCover
+{
+    public const int ItemId = 5000319;
+    public const int DefaultMarketValueGold = 2_000_000;
+    public const int ExtraSlots = 1;
+    public const int ExtraWeight = 100;
+
+    public static bool IsWorthwhile(decimal expandedNetGold, decimal normalNetGold) =>
+        expandedNetGold > normalNetGold;
+}
+
 public enum PurchaseObjective { NetProfit, ProfitPerMinute, ProfitPerMapUnit }
 
 public sealed record PurchaseGood(
@@ -17,13 +28,15 @@ public sealed record PurchaseRequest(
     IReadOnlyList<PurchaseTransport> Transports, IReadOnlyList<PurchaseDestination> Destinations,
     PurchaseObjective Objective = PurchaseObjective.NetProfit, bool GroupMode = false,
     int MaxSearchNodesPerPair = 200_000, int MaxTotalSearchNodes = 2_000_000,
-    IReadOnlyDictionary<(int DestinationId, int TransportId), decimal>? TransportMinutes = null);
+    IReadOnlyDictionary<(int DestinationId, int TransportId), decimal>? TransportMinutes = null,
+    decimal? ExpansionCoverMarketValueGold = null, decimal GoldPerProfitUnit = 1m);
 
 public sealed record PurchaseLine(int GoodId, int Quantity, int Slots, int Weight, decimal Cost, decimal Sale);
 
 public sealed record PurchasePlan(
     int DestinationId, int TransportId, IReadOnlyList<PurchaseLine> Lines,
-    ProfitResult Profit, int UsedSlots, int UsedWeight, decimal Score, bool HasEstimatedPrices);
+    ProfitResult Profit, int UsedSlots, int UsedWeight, decimal Score, bool HasEstimatedPrices,
+    bool UsesExpansionCover = false, decimal ExpansionCoverCostGold = 0m);
 
 public sealed record PurchaseSearchResult(IReadOnlyList<PurchasePlan> Plans, bool IsExhaustive, long VisitedNodes)
 {
@@ -39,6 +52,8 @@ public static class PurchaseOptimizer
             throw new ArgumentOutOfRangeException(nameof(request), "Source must be positive, funds non-negative and search budgets positive.");
         if (request.Goods.Select(good => good.Id).Distinct().Count() != request.Goods.Count)
             throw new ArgumentException("Each good must have a unique ID.", nameof(request));
+        if (request.ExpansionCoverMarketValueGold is < 0 || request.GoldPerProfitUnit <= 0)
+            throw new ArgumentOutOfRangeException(nameof(request), "Cover price must be non-negative and Gold conversion positive.");
 
         var workItems = new List<SearchWork>();
         foreach (var destination in request.Destinations.DistinctBy(destination => destination.Id))
@@ -64,8 +79,6 @@ public static class PurchaseOptimizer
                          .DistinctBy(transport => transport.Id))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var goods = PruneDominatedCandidates(candidates, request.Funds, transport);
-                if (goods.Length == 0) continue;
                 var divisor = request.Objective switch
                 {
                     PurchaseObjective.ProfitPerMinute when request.TransportMinutes is not null =>
@@ -75,7 +88,20 @@ public static class PurchaseOptimizer
                     _ => 1m
                 };
                 if (divisor is not > 0) continue;
-                workItems.Add(new SearchWork(destination, goods, transport, divisor.Value));
+                AddWork(transport, false, 0m);
+                if (request.ExpansionCoverMarketValueGold is > 0)
+                    AddWork(transport with
+                    {
+                        Slots = checked(transport.Slots + CommerceExpansionCover.ExtraSlots),
+                        Weight = checked(transport.Weight + CommerceExpansionCover.ExtraWeight)
+                    }, true, request.ExpansionCoverMarketValueGold.Value);
+
+                void AddWork(PurchaseTransport capacity, bool usesCover, decimal costGold)
+                {
+                    var goods = PruneDominatedCandidates(candidates, request.Funds, capacity);
+                    if (goods.Length > 0)
+                        workItems.Add(new SearchWork(destination, goods, capacity, divisor.Value, usesCover, costGold));
+                }
             }
         }
 
@@ -102,8 +128,9 @@ public static class PurchaseOptimizer
 
             var plan = new PurchasePlan(work.Destination.Id, work.Transport.Id, pair.Lines, pair.Profit,
                 pair.Lines.Sum(line => line.Slots), pair.Lines.Sum(line => line.Weight),
-                pair.Profit.NetProfit / work.Divisor,
-                pair.Lines.Any(line => work.Goods.First(candidate => candidate.Good.Id == line.GoodId).HasEstimatedPrice));
+                (pair.Profit.NetProfit - work.CoverCostGold / request.GoldPerProfitUnit) / work.Divisor,
+                pair.Lines.Any(line => work.Goods.First(candidate => candidate.Good.Id == line.GoodId).HasEstimatedPrice),
+                work.UsesCover, work.CoverCostGold);
             results.Add(new SearchWorkResult(plan, pair.IsExhaustive, pair.VisitedNodes));
         });
 
@@ -230,7 +257,8 @@ public static class PurchaseOptimizer
         public decimal Margin => SalePrice - Good.BuyPrice;
     }
 
-    private sealed record SearchWork(PurchaseDestination Destination, Candidate[] Goods, PurchaseTransport Transport, decimal Divisor);
+    private sealed record SearchWork(PurchaseDestination Destination, Candidate[] Goods, PurchaseTransport Transport,
+        decimal Divisor, bool UsesCover, decimal CoverCostGold);
     private sealed record SearchWorkResult(PurchasePlan? Plan, bool IsExhaustive, int VisitedNodes);
 
     private sealed record PairResult(IReadOnlyList<PurchaseLine> Lines, ProfitResult Profit, bool IsExhaustive, int VisitedNodes);

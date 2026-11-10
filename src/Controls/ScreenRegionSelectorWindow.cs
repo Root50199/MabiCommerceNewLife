@@ -49,7 +49,7 @@ public sealed class ScreenRegionSelectorWindow : Window
             Padding = new Thickness(10, 5, 10, 5),
             Child = new TextBlock
             {
-                Text = "Drag from the left bracket to the right bracket around the good name and full price list · Esc cancels",
+                Text = "Select the name, Inventory count, and full price list with a small margin around both brackets · Esc cancels",
                 Foreground = new SolidColorBrush(Color.FromRgb(0xF4, 0xEC, 0xD9)),
                 FontSize = 12
             }

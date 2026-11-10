@@ -92,15 +92,44 @@ public partial class ShoppingListWindow : Window
         if (!BarterShoppingList.TryParseHave(box.Text, out var have))
         {
             box.BorderBrush = Brushes.Red;
-            box.ToolTip = $"Enter a whole number from 0 to {BarterShoppingList.MaxHave:N0}";
+            TotalsText.Text = $"Enter a whole number from 0 to {BarterShoppingList.MaxHave:N0}.";
             return;
         }
         box.ClearValue(Border.BorderBrushProperty);
-        box.ToolTip = "Whole number you already have";
+        UpdateTotals();
         if (row.Have == have) return;
         row.SetHave(have);
         _owner.SetBarterMaterialOnHand(row.ItemId, have);
         UpdateTotals();
+    }
+
+    private void UnitCost_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (sender is not TextBox { Tag: ShoppingRow row } box) return;
+        if (!BarterShoppingList.TryParseUnitCost(box.Text, out var unitCost))
+        {
+            box.BorderBrush = Brushes.Red;
+            TotalsText.Text = "Enter a positive Gold value, or leave blank.";
+            return;
+        }
+        box.ClearValue(Border.BorderBrushProperty);
+        UpdateTotals();
+        if (row.UnitCost == unitCost) return;
+        row.SetUnitCost(unitCost);
+        _owner.SetBarterMaterialValue(row.ItemId, unitCost);
+    }
+
+    private void UnitCost_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is not TextBox { Tag: ShoppingRow row } box) return;
+        if (BarterShoppingList.TryParseUnitCost(box.Text, out var unitCost) && unitCost == row.UnitCost)
+        {
+            row.FormatUnitCostText();
+            box.Text = row.UnitCostText;
+            return;
+        }
+        row.FormatUnitCostText();
+        box.Text = row.UnitCostText;
     }
 
     // A malformed entry is never saved; leaving the box shows the saved count again.
@@ -122,7 +151,7 @@ public partial class ShoppingListWindow : Window
     private void CopyForSheets_Click(object sender, RoutedEventArgs e)
     {
         if (_rows.Count == 0) return;
-        var lines = _rows.Select(row => new BarterShoppingLine(row.ItemId, row.Name, row.Needed, row.Have));
+        var lines = _rows.Select(row => new BarterShoppingLine(row.ItemId, row.Name, row.Needed, row.Have, row.UnitCost));
         try
         {
             Clipboard.SetText(BarterShoppingList.FormatForSpreadsheet(lines));
@@ -173,6 +202,9 @@ public sealed class ShoppingRow : INotifyPropertyChanged
         Needed = line.Needed;
         Have = (int)Math.Min(line.Have, BarterShoppingList.MaxHave);
         HaveText = Have == 0 ? string.Empty : Have.ToString(CultureInfo.CurrentCulture);
+        UnitCost = line.UnitCost;
+        UnitCostText = FormatUnitCost(UnitCost);
+        IsUnitCostEditable = line.IsUnitCostEditable;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -182,11 +214,28 @@ public sealed class ShoppingRow : INotifyPropertyChanged
     public long Needed { get; }
     public int Have { get; private set; }
     public string HaveText { get; set; }
+    public decimal? UnitCost { get; private set; }
+    public string UnitCostText { get; set; }
+    public bool IsUnitCostEditable { get; }
+    public string UnitCostTooltip => IsUnitCostEditable
+        ? "Saved market Gold value per material; edits also update Barter Materials"
+        : "Untradable material has no Gold value";
     public long StillNeed => Math.Max(0, Needed - Have);
     public string NeededText => Needed.ToString("N0", CultureInfo.CurrentCulture);
     public string StillNeedText => StillNeed == 0 ? "✓" : StillNeed.ToString("N0", CultureInfo.CurrentCulture);
     public Brush StillNeedBrush => StillNeed == 0 ? ShoppingListWindow.DoneBrush : ShoppingListWindow.ShortBrush;
-    public string Tooltip => $"{Name}\nNeeded: {NeededText}\nHave: {Have:N0}\nStill need: {StillNeed:N0}";
+    public string Tooltip => $"{Name}\nNeeded: {NeededText}\nGold each: {FormatUnitCost(UnitCost)}\nHave: {Have:N0}\nStill need: {StillNeed:N0}";
+
+    public void SetUnitCost(decimal? unitCost)
+    {
+        UnitCost = unitCost;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Tooltip)));
+    }
+
+    public void FormatUnitCostText() => UnitCostText = FormatUnitCost(UnitCost);
+
+    private static string FormatUnitCost(decimal? unitCost) =>
+        unitCost?.ToString("#,0.##", CultureInfo.InvariantCulture) ?? string.Empty;
 
     public void SetHave(int have)
     {

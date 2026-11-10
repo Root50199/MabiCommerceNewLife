@@ -17,7 +17,8 @@ public sealed class BarterShoppingListTests
         };
         var have = new Dictionary<int, int> { [1] = 20, [2] = 50 };
 
-        var lines = BarterShoppingList.Build(needs, id => have.GetValueOrDefault(id));
+        var lines = BarterShoppingList.Build(needs, id => have.GetValueOrDefault(id),
+            id => id == 1 ? 12.5m : null);
 
         Assert.AreEqual(2, lines.Count);
         Assert.AreEqual("Leather", lines[0].Name);
@@ -26,6 +27,11 @@ public sealed class BarterShoppingListTests
         Assert.AreEqual("Wool", lines[1].Name);
         Assert.AreEqual(62, lines[1].Needed);
         Assert.AreEqual(42, lines[1].StillNeed);
+        Assert.AreEqual(12.5m, lines[1].UnitCost);
+
+        var untradable = BarterShoppingList.Build(needs, id => have.GetValueOrDefault(id),
+            isUnitCostEditable: id => id != 1);
+        Assert.IsFalse(untradable[1].IsUnitCostEditable);
     }
 
     [TestMethod]
@@ -37,16 +43,30 @@ public sealed class BarterShoppingListTests
     {
         var lines = new[]
         {
-            new BarterShoppingLine(1, "Wool\tBundle\r\nItem", 1_234_567, 25)
+            new BarterShoppingLine(1, "Wool\tBundle\r\nItem", 1_234_567, 25, 10_000.5m)
         };
 
         var formatted = BarterShoppingList.FormatForSpreadsheet(lines);
 
         Assert.AreEqual(
             string.Join(Environment.NewLine,
-                "Material\tNeeded\tHave\tStill need",
-                "Wool Bundle Item\t1234567\t25\t1234542"),
+                "Material\tNeeded\tGold each\tHave\tStill need",
+                "Wool Bundle Item\t1234567\t10000.5\t25\t1234542"),
             formatted);
+    }
+
+    [DataTestMethod]
+    [DataRow("", true, null)]
+    [DataRow("  ", true, null)]
+    [DataRow("0", true, null)]
+    [DataRow("1,250.5", true, 1250.5)]
+    [DataRow("-1", false, null)]
+    [DataRow("1e3", false, null)]
+    [DataRow("abc", false, null)]
+    public void UnitCostAcceptsPositivePricesOrBlank(string text, bool expectedValid, double? expectedCost)
+    {
+        Assert.AreEqual(expectedValid, BarterShoppingList.TryParseUnitCost(text, out var cost));
+        Assert.AreEqual(expectedCost is null ? null : (decimal?)Convert.ToDecimal(expectedCost), cost);
     }
 
     [DataTestMethod]

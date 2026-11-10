@@ -334,7 +334,7 @@ public sealed class PriceListOcrParserTests
         StringAssert.Contains(unconfirmed.PriceSourceText, "game value model");
 
         // Demand lowers the sale price itself, so this Tara price is accepted even though 6,066 / 1.93 is below a
-        // 3,300 minimum; the 20% cap below still catches wrong leading digits.
+        // 3,300 minimum; the swing limits below still catch out-of-band leading digits.
         var belowRange = PriceListOcrParser.ApplyBarterValueCheck(Candidates(true), OasisWeights, 3300, 4368)
             .Single(item => item.PostId == 6);
         Assert.IsTrue(belowRange.Include);
@@ -378,10 +378,62 @@ public sealed class PriceListOcrParserTests
     }
 
     [TestMethod]
-    public void BarterValueCheckRejectsMisreadLeadingAndMiddleDigits()
+    public void BarterSwingCheckAcceptsObservedWoodenTablePrices()
+    {
+        var weights = new Dictionary<int, decimal>
+        {
+            [1] = 1.93m, [2] = 1.83m, [3] = 1.92m, [4] = 1.89m, [5] = 2.01m, [6] = 2.09m,
+            [7] = 1.8m, [8] = 1.92m, [101] = 1.36m, [102] = 1.5m, [103] = 1.57m, [104] = 1.86m
+        };
+        var prices = new Dictionary<int, int>
+        {
+            [1] = 4379, [2] = 4423, [3] = 4401, [4] = 4373, [5] = 4227, [6] = 4239,
+            [7] = 4388, [8] = 4362, [101] = 3310, [102] = 3668, [103] = 3843, [104] = 4419
+        };
+        var towns = prices.Keys.Select(id => new OcrTownRow(id, $"Town {id}", 0, $"Town {id}")).ToArray();
+        var cells = prices.Select(pair => new OcrPriceCellRead(pair.Key, $"{pair.Value}", 90,
+            "", 0, false, SaleVotes: 8, SaleReads: 8)).ToArray();
+        var candidates = PriceListOcrParser.ParseSaleOnlyCells(towns, cells);
+
+        var checkedCandidates = PriceListOcrParser.ApplyBarterValueCheck(candidates, weights, 2040, 2880);
+
+        Assert.IsTrue(checkedCandidates.All(item => item.IsCrossChecked && item.Include),
+            string.Join(" | ", checkedCandidates.Select(item => $"{item.PostId}: {item.PriceSourceText}")));
+        Assert.IsTrue(PriceListOcrParser.CanAutoAccept(checkedCandidates, towns.Length, false));
+    }
+
+    [DataTestMethod]
+    [DataRow(75000, true, true)]
+    [DataRow(74999, true, false)]
+    [DataRow(78000, true, true)]
+    [DataRow(115000, true, true)]
+    [DataRow(115001, true, false)]
+    [DataRow(110000, true, true)]
+    [DataRow(75000, false, false)]
+    [DataRow(115000, false, false)]
+    public void BarterSwingCheckEnforcesBoundariesAndReadAgreement(int salePrice, bool agrees, bool accepted)
+    {
+        var weights = Enumerable.Range(1, 5).ToDictionary(id => id, _ => 1m);
+        var towns = weights.Keys.Select(id => new OcrTownRow(id, $"Town {id}", 0, $"Town {id}")).ToArray();
+        var cells = weights.Keys.Select(id => new OcrPriceCellRead(id, id == 1 ? $"{salePrice}" : "100000",
+            90, "", 0, false, SaleVotes: id == 1 && !agrees ? 3 : 8, SaleReads: 8)).ToArray();
+        var candidates = PriceListOcrParser.ParseSaleOnlyCells(towns, cells);
+
+        var checkedCandidates = PriceListOcrParser.ApplyBarterValueCheck(candidates, weights, 90000, 110000);
+        var candidate = checkedCandidates.Single(item => item.PostId == 1);
+
+        Assert.AreEqual(accepted, candidate.Include);
+        Assert.AreEqual(accepted, candidate.IsCrossChecked);
+        Assert.AreEqual((decimal)salePrice, candidate.Price);
+        Assert.AreEqual(accepted, PriceListOcrParser.CanAutoAccept(checkedCandidates, towns.Length, false));
+        Assert.IsTrue(checkedCandidates.Where(item => item.PostId != 1).All(item => item.IsCrossChecked && item.Include));
+    }
+
+    [TestMethod]
+    public void BarterValueCheckRejectsMisreadDigitsOutsideAllowedSwings()
     {
         var checkedCandidates = PriceListOcrParser.ApplyBarterValueCheck(
-            FossilCandidates((1, 40706), (2, 181760), (3, 128131)), OasisWeights, 68000, 96000);
+            FossilCandidates((1, 40706), (2, 181760), (3, 183131)), OasisWeights, 68000, 96000);
 
         foreach (var postId in new[] { 1, 2, 3 })
         {
@@ -394,11 +446,17 @@ public sealed class PriceListOcrParserTests
     }
 
     [TestMethod]
-    public void BarterValueCheckRejectsAllPricesWhenImpliedBaseIsOutsideTheGameRange()
+    public void BarterCatalogBoundsAreBroadButRejectOrderOfMagnitudeErrors()
     {
-        var checkedCandidates = PriceListOcrParser.ApplyBarterValueCheck(FossilCandidates(), OasisWeights, 1870, 2640);
-
-        Assert.IsTrue(checkedCandidates.All(item => !item.IsCrossChecked && !item.Include));
-        Assert.IsTrue(checkedCandidates.All(item => item.PriceSourceText.Contains("outside game range", StringComparison.Ordinal)));
+        var checkedCandidates = PriceListOcrParser.ApplyBarterValueCheck(FossilCandidates(), OasisWeights, 20000, 30000);
+        Assert.IsTrue(checkedCandidates.Any(item => item.IsCrossChecked));
+        var enormous = FossilCandidates().Select(c => new PriceListOcrCandidate
+        {
+            Include = c.Include, PostId = c.PostId, Price = c.Price * 100,
+            IsCrossChecked = c.IsCrossChecked
+        }).ToArray();
+        var rejected = PriceListOcrParser.ApplyBarterValueCheck(enormous, OasisWeights, 1870, 2640);
+        Assert.IsTrue(rejected.All(item => !item.IsCrossChecked && !item.Include));
+        Assert.IsTrue(rejected.All(item => item.PriceSourceText.Contains("outside game range", StringComparison.Ordinal)));
     }
 }

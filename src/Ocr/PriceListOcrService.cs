@@ -23,6 +23,8 @@ public static class PriceListOcrService
     private const int MetadataRegionY = 29;
     private const int MetadataRegionWidth = 257;
     private const int MetadataRegionHeight = 20;
+    private const int StockRegionY = 44;
+    private const int StockRegionHeight = 19;
     private const int TownRegionX = 17;
     private const int TownRegionY = 95;
     private const int TownRegionWidth = 85;
@@ -146,9 +148,71 @@ public static class PriceListOcrService
         var confidences = priceCells.Select(cell => cell.SaleConfidence > 0 ? cell.SaleConfidence : cell.ProfitConfidence)
             .Where(confidence => confidence > 0).ToArray();
         var meanConfidence = confidences.Length == 0 ? nameOcr.Confidence : confidences.Average();
+        var stock = ReadInventoryStock(engine, source, anchor);
 
         return new AnchoredPriceListOcrResult(nameOcr.Text, metadataOcr.Text, meanConfidence,
-            anchor, townRows, priceCells, isSaleOnlyTable);
+            anchor, townRows, priceCells, isSaleOnlyTable, stock);
+    }
+
+    private static OcrStockRead ReadInventoryStock(Engine engine, Bitmap source, OcrAnchorMatch anchor)
+    {
+        using var region = CropRegion(source, anchor, 105, StockRegionY, 130, StockRegionHeight);
+        using var prepared = PrepareNumericColumnCore(region, false, minimumWhiteChannel: 140, maximumWhiteSpread: 24);
+        // A smaller UI scale can bring the paper's white top border into this crop.
+        for (var y = 0; y < prepared.Height; y++)
+            if (Enumerable.Range(0, prepared.Width).Count(x => prepared.GetPixel(x, y).R == 0) > region.Width / 2)
+                for (var x = 0; x < prepared.Width; x++) prepared.SetPixel(x, y, Color.White);
+        var ink = new List<Point>();
+        for (var y = 0; y < prepared.Height; y++)
+        for (var x = 0; x < prepared.Width; x++)
+            if (prepared.GetPixel(x, y).R == 0) ink.Add(new Point(x, y));
+        if (ink.Count == 0) return PriceListOcrParser.ParseStockReads(["", "", "", ""]);
+        var bounds = Rectangle.FromLTRB(ink.Min(point => point.X), ink.Min(point => point.Y),
+            ink.Max(point => point.X) + 1, ink.Max(point => point.Y) + 1);
+        var originalBounds = new Rectangle(bounds.X - 6, bounds.Y - 6, bounds.Width, bounds.Height);
+        originalBounds.Inflate(2, 2);
+        originalBounds.Intersect(new Rectangle(0, 0, region.Width, region.Height));
+        using var originalDigits = region.Clone(originalBounds, PixelFormat.Format32bppArgb);
+        using var digits = prepared.Clone(bounds, PixelFormat.Format32bppArgb);
+        using var padded = new Bitmap(digits.Width + 12, digits.Height + 12);
+        using (var graphics = Graphics.FromImage(padded))
+        {
+            graphics.Clear(Color.White);
+            graphics.DrawImageUnscaled(digits, 6, 6);
+        }
+        using var dilated = DilateInkHorizontally(padded);
+        engine.SetVariable("tessedit_char_whitelist", "0123456789,.");
+        engine.SetVariable("classify_bln_numeric_mode", 1);
+        var segmented = TrySegmentRowGlyphs(padded, padded.Height / 2, out var glyphTop, out var glyphBottom, out var glyphs);
+        string ValidateGlyphs(string text)
+        {
+            var parsed = PriceListOcrParser.ParseStockReads([text]).Count;
+            if (parsed is null) return string.Empty;
+            var value = parsed.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (!segmented || value.Length != glyphs.Count) return string.Empty;
+            var characters = value.ToCharArray();
+            for (var index = 0; index < characters.Length; index++)
+                if (characters[index] is '8' or '9' &&
+                    ClassifySwapGlyph(padded, glyphs[index].Left, glyphs[index].Width,
+                        glyphTop, glyphBottom - glyphTop + 1, characters[index]) is { } digit)
+                    characters[index] = digit;
+            return new string(characters);
+        }
+        var readings = new[]
+        {
+            RecognizeText(engine, padded, 3, PageSegMode.SingleLine).Text,
+            RecognizeText(engine, padded, 4, PageSegMode.SingleLine).Text,
+            RecognizeText(engine, dilated, 3, PageSegMode.SingleLine).Text,
+            RecognizeText(engine, dilated, 4, PageSegMode.SingleLine).Text
+        };
+        var stock = PriceListOcrParser.ParseStockReads(readings.Select(ValidateGlyphs));
+        if (!stock.IsReliable)
+        {
+            var originalRead = ValidateGlyphs(RecognizeText(engine, originalDigits, 3, PageSegMode.SingleLine).Text);
+            if (originalRead.Length > 0)
+                stock = PriceListOcrParser.ParseStockReads(new[] { originalRead }.Concat(readings.Select(ValidateGlyphs)));
+        }
+        return stock with { SourceText = stock.SourceText + $" OCR: {string.Join(" | ", readings.Select(text => text.Trim()))}" };
     }
 
     private static bool LooksLikeTradeMetadata(string metadataText) =>
@@ -376,6 +440,22 @@ public static class PriceListOcrService
                         {
                             profit = recoveredProfitCandidate;
                             isLoss = recoveredIsLoss;
+                        }
+                    }
+                }
+                if (!ProfitMatchesSale(sale, profit, isLoss, sourcePrice.Value))
+                {
+                    var rowProfit = ReadRowLine(engine, preparedProfit,
+                        town.CenterY - (anchor.Y + TownRegionY - 6), 4, false);
+                    if (rowProfit is not null)
+                    {
+                        rowProfit = rowProfit with { CenterY = town.CenterY };
+                        var rowIsLoss = IsProfitLossColor(source, anchor.X + ProfitCellX,
+                            anchor.X + ProfitCellX + ProfitCellWidth, town.CenterY);
+                        if (ProfitMatchesSale(sale, rowProfit, rowIsLoss, sourcePrice.Value))
+                        {
+                            profit = rowProfit;
+                            isLoss = rowIsLoss;
                         }
                     }
                 }
@@ -741,7 +821,11 @@ public static class PriceListOcrService
         return salePrice - profitValue == sourcePrice;
     }
 
-    private static Bitmap PrepareNumericColumn(Bitmap source, bool coloredDigits)
+    private static Bitmap PrepareNumericColumn(Bitmap source, bool coloredDigits) =>
+        PrepareNumericColumnCore(source, coloredDigits, 170, 8);
+
+    private static Bitmap PrepareNumericColumnCore(Bitmap source, bool coloredDigits,
+        int minimumWhiteChannel, int maximumWhiteSpread)
     {
         var prepared = new Bitmap(source.Width + 12, source.Height + 12, PixelFormat.Format32bppArgb);
         using (var graphics = Graphics.FromImage(prepared)) graphics.Clear(Color.White);
@@ -753,7 +837,7 @@ public static class PriceListOcrService
                 (pixel.B > 100 && pixel.B > pixel.R * 1.2 && pixel.B > pixel.G * 1.1);
             var brightestChannel = Math.Max(pixel.R, Math.Max(pixel.G, pixel.B));
             var darkestChannel = Math.Min(pixel.R, Math.Min(pixel.G, pixel.B));
-            var isWhiteDigit = darkestChannel >= 170 && brightestChannel - darkestChannel <= 8;
+            var isWhiteDigit = darkestChannel >= minimumWhiteChannel && brightestChannel - darkestChannel <= maximumWhiteSpread;
             var isBlackDigit = brightestChannel <= 140 && brightestChannel - darkestChannel <= 24;
             prepared.SetPixel(pixelX + 6, pixelY + 6,
                 (coloredDigits ? isColoredDigit || isBlackDigit : isWhiteDigit) ? Color.Black : Color.White);
