@@ -236,6 +236,101 @@ public sealed class CommunityClientTests
         Json(new { installationId = Guid.NewGuid().ToString(), token = Token, consentVersion = Policy.ConsentVersion });
 
     [TestMethod]
+    [DataRow(409)]
+    [DataRow(429)]
+    [DataRow(503)]
+    public async Task FailedBatchKeepsQueueAndStableIdsForManualRetry(int status)
+    {
+        var queue = new CommunityScanQueue();
+        var scan = new CommunityScan(Guid.NewGuid().ToString(), "trade", 1, 10, 100, 25, [new(20, 120, 20)]);
+        queue.Enqueue(scan, [1]);
+        var requests = 0;
+        using var handler = new StubHandler((request, _) =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/v1/installations") return Registration();
+            requests++;
+            return new HttpResponseMessage((System.Net.HttpStatusCode)status)
+            {
+                Content = new StringContent("{\"error\":\"test_failure\"}")
+            };
+        });
+        using var client = new CommunityClient("http://127.0.0.1:8787", handler);
+        await client.ConnectAsync(Policy, default);
+        var batch = queue.TakeNext()!;
+        await Assert.ThrowsExceptionAsync<CommunityApiException>(() =>
+            client.UploadBatchAsync(batch, client.ConnectedSession!.Value, default));
+        queue.Fail(batch);
+        Assert.AreEqual(1, requests, "Upload failures must not replay automatically.");
+        Assert.AreEqual(1, queue.Count);
+        Assert.IsNull(queue.TakeNext());
+        Assert.AreEqual(scan.ScanId, queue.TakeNext(force: true)!.Scans.Single().ScanId);
+    }
+
+    [TestMethod]
+    public async Task BatchReplyCannotCrossAnOffOnSessionBoundary()
+    {
+        CommunityClient? active = null;
+        var scan = new CommunityScan(Guid.NewGuid().ToString(), "trade", 1, 10, 100, 25, [new(20, 120, 20)]);
+        using var handler = new StubHandler((request, _) =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/v1/installations") return Registration();
+            active!.Disconnect();
+            return Json(new { receipts = new[] { new CommunityBatchReceipt(scan.ScanId, 1, 1000, false) } });
+        });
+        using var client = new CommunityClient("http://127.0.0.1:8787", handler);
+        active = client;
+        await client.ConnectAsync(Policy, default);
+        var session = client.ConnectedSession!.Value;
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
+            client.UploadBatchAsync(new(new("trade", 10), [scan]), session, default));
+        Assert.IsNull(client.ConnectedSession);
+    }
+
+    [TestMethod]
+    public async Task NullBatchReceiptIsAValidationFailureNotAnUnhandledException()
+    {
+        using var handler = new StubHandler((request, _) =>
+            request.RequestUri!.AbsolutePath == "/v1/installations"
+                ? Registration() : Json(new { receipts = new object?[] { null } }));
+        using var client = new CommunityClient("http://127.0.0.1:8787", handler);
+        await client.ConnectAsync(Policy, default);
+        var scan = new CommunityScan(Guid.NewGuid().ToString(), "trade", 1, 10, 100, 25, [new(20, 120, 20)]);
+        await Assert.ThrowsExceptionAsync<InvalidDataException>(() =>
+            client.UploadBatchAsync(new(new("trade", 10), [scan]), client.ConnectedSession!.Value, default));
+    }
+
+    [TestMethod]
+    public async Task OutpostBatchUsesOneRequestWithoutScanTicketsAndValidatesAllReceipts()
+    {
+        var scans = Enumerable.Range(1, 5).Select(id =>
+            new CommunityScan(Guid.NewGuid().ToString(), "trade", id, 10, 100, 25, [new(20, 120, 20)])).ToArray();
+        var invalidReceipt = false;
+        var batches = 0;
+        using var handler = new StubHandler((request, body) =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/v1/installations") return Registration();
+            Assert.AreEqual("/v1/scan-batches", request.RequestUri.AbsolutePath);
+            Assert.AreEqual(Token, request.Headers.Authorization!.Parameter);
+            using var json = JsonDocument.Parse(body!);
+            Assert.AreEqual(5, json.RootElement.GetProperty("scans").GetArrayLength());
+            batches++;
+            return Json(new { receipts = scans.Take(invalidReceipt ? 1 : 5)
+                .Select((scan, index) => new CommunityBatchReceipt(scan.ScanId, index + 1, 1000, false)) });
+        });
+        using var client = new CommunityClient("http://127.0.0.1:8787", handler);
+        await client.ConnectAsync(Policy, default);
+        var session = client.ConnectedSession!.Value;
+        var batch = new CommunityPendingBatch(new("trade", 10), scans);
+        Assert.AreEqual(5, (await client.UploadBatchAsync(batch, session, default)).Count);
+        Assert.AreEqual(2, handler.Count, "One registration plus one batch; no ticket requests.");
+        invalidReceipt = true;
+        await Assert.ThrowsExceptionAsync<InvalidDataException>(() => client.UploadBatchAsync(batch, session, default));
+        client.Disconnect();
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => client.UploadBatchAsync(batch, session, default));
+        Assert.AreEqual(2, batches);
+    }
+
+    [TestMethod]
     public async Task RetryAfterSecondsDatesAndInvalidHeadersArePreservedSafely()
     {
         var serverTime = new DateTimeOffset(2026, 11, 10, 0, 0, 0, TimeSpan.Zero);

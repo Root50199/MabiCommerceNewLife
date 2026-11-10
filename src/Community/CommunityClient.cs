@@ -15,6 +15,7 @@ public sealed record CommunityScan(string ScanId, string Mode, int ProductId, in
     string PriceBasis = "legacy", int? ObservedSourcePrice = null, decimal? PurchaseDiscountPercent = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CommunityReview? Review = null);
 public sealed record CommunityReceipt(long Sequence, long ReceivedAt, bool Duplicate);
+public sealed record CommunityBatchReceipt(string ScanId, long Sequence, long ReceivedAt, bool Duplicate);
 public sealed record CommunityObservation(long Sequence, long ReceivedAt, string Mode, int ProductId,
     int SourcePostId, int? SourcePrice, int Stock, IReadOnlyList<CommunityPrice> Prices,
     string PriceBasis = "legacy", int? ObservedSourcePrice = null, decimal? PurchaseDiscountPercent = null,
@@ -46,6 +47,7 @@ public sealed class CommunityClient : IDisposable
     private CommunitySnapshot? _snapshot;
     private readonly CommunityCredentialStore? _credentials;
     public bool IsConnected => _token is not null;
+    public Guid? ConnectedSession => IsConnected ? _session : null;
     public Uri Endpoint => _http.BaseAddress!;
 
     public CommunityClient(string endpoint, HttpMessageHandler? handler = null, string? credentialPath = null)
@@ -172,6 +174,29 @@ public sealed class CommunityClient : IDisposable
         return snapshot;
     }
 
+    public async Task<IReadOnlyList<CommunityBatchReceipt>> UploadBatchAsync(
+        CommunityPendingBatch batch, Guid session, CancellationToken cancellationToken)
+    {
+        if (!IsConnected || session != _session) throw new InvalidOperationException("Sharing was disconnected.");
+        if (batch.Scans.Count is < 1 or > CommunityScanQueue.MaxBatchScans ||
+            batch.Scans.Any(scan => scan.Mode != batch.Outpost.Mode || scan.SourcePostId != batch.Outpost.PostId) ||
+            batch.Scans.Select(scan => scan.ScanId).Distinct().Count() != batch.Scans.Count ||
+            batch.Scans.Select(scan => scan.ProductId).Distinct().Count() != batch.Scans.Count)
+            throw new InvalidOperationException("Invalid outpost sharing batch.");
+        using var request = Authorized(HttpMethod.Post, "v1/scan-batches", new { scans = batch.Scans });
+        var response = await SendAsync<BatchResponse>(request, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsConnected || session != _session) throw new InvalidOperationException("Sharing was disconnected.");
+        if (response.Receipts is null || response.Receipts.Count != batch.Scans.Count ||
+            response.Receipts.Any(receipt => receipt is null || receipt.Sequence <= 0 ||
+                receipt.ReceivedAt is <= 0 or > 253402300799999) ||
+            response.Receipts.Select(receipt => receipt.Sequence).Distinct().Count() != batch.Scans.Count ||
+            !response.Receipts.Select(receipt => receipt.ScanId).Order()
+                .SequenceEqual(batch.Scans.Select(scan => scan.ScanId).Order()))
+            throw new InvalidDataException("Backend returned invalid batch receipts. Pending scans were kept for manual retry.");
+        return response.Receipts;
+    }
+
     private static void ValidateObservations(IReadOnlyList<CommunityObservation> observations)
     {
         if (observations is null || observations.Any(o => o is null || o.Sequence <= 0 ||
@@ -291,6 +316,7 @@ public sealed class CommunityClient : IDisposable
 
     private sealed record Registration(string InstallationId, string Token, string ConsentVersion);
     private sealed record TicketResponse(string ScanId, long ExpiresAt);
+    private sealed record BatchResponse(IReadOnlyList<CommunityBatchReceipt> Receipts);
 
     private static void ValidateTicket(TicketResponse ticket)
     {

@@ -40,8 +40,8 @@ The window recreates the in-game Trading Post using art, icons and fonts taken f
 - **Weekly reset**: Group and Barter stock can refill automatically at the Thursday reset.
 - **Barter materials**: track on-hand amounts and market Gold values; edit values in Barter Materials or the shopping list. Copy the list, including per-unit values, as a table to paste into Google Sheets.
 - **Trade history** (in Settings): a log of every load sold with the Sell button, with running totals of raw Gold, Ducats and converted total Gold.
-- **Scanned price sharing** (Settings > Calculator Behavior, under Screen reader mode): one initially-off, explicit-consent toggle enables sending automatically validated scans or complete scans confirmed in OCR review, and receiving shared prices/Inventory supply. Edited source/stock/destination values are flagged manual; unchanged confirmed values are reviewed OCR. Both can update other planners, with provenance in price/stock details. User and Dev builds use the same Cloudflare-hosted online service. Its ON/OFF choice, consented backend and sharing-policy version are saved in `config.json`; ON reconnects for that service/policy. A changed backend/policy or old unscoped consent becomes OFF until you enable sharing and accept. A random installation ID and authentication token are saved unencrypted in `community-credentials.json` beside the app and reused across launches; the backend stores only a token hash. Keep the file private: copying it shares the installation identity. OFF keeps it but stops transfers; saved credentials never enable sharing by themselves. Existing users must accept the updated storage disclosure once. Reconnect verifies saved authorization with a short-lived ticket without downloading prices or uploading observations. Rejected saved credentials remain disconnected, without automatically registering a replacement. Connection failures keep the saved ON choice. The small dark **refresh icon in the paper's upper-left corner** receives and applies newest data using your purchase discounts, at most once per minute across all tabs, including failed attempts and automatic retries. It stays visible while sharing is off; its adjacent info bubble explains connection state and cooldown. Turning scanner mode off saves sharing OFF; re-enabling scanning does not resume sharing. No character/account data, screenshots, raw OCR, personal weekly allowance or unrelated manual planner edits are sent. No polling, automatic price download on launch, or offline upload queue.
-- **Sharing status:** the bottom-left dot is green when connected, yellow for connecting/temporary errors/rate limits, red for hard failures, and gray when OFF. Hover for a brief explanation; click yellow/red for a themed details panel with fixes, remaining wait and **Retry**. Retry stays disabled during active requests/server waits (and the refresh cooldown). Startup honors known server rate-limit delays, including waits longer than a minute; temporary startup privacy-read failures retry twice (5s/10s). Outside startup, connection/read/ticket retries require a known rate-limit delay strictly under one minute. Refresh retries still honor the global one-minute cooldown. Unknown/long non-startup limits require manual retry. OFF/close cancels waits. Ambiguous registration failures and scan uploads are never automatically replayed; after recovery, scan again to share a local-only scan.
+- **Scanned price sharing** (Settings > Calculator Behavior, under Screen reader mode): one initially-off, explicit-consent toggle enables sending automatically validated scans or complete scans confirmed in OCR review, and receiving shared prices/Inventory supply. Edited source/stock/destination values are flagged manual; unchanged confirmed values are reviewed OCR. Both can update other planners, with provenance in price/stock details. User and Dev builds use the same Cloudflare-hosted online service. Its ON/OFF choice, consented backend and sharing-policy version are saved in `config.json`; ON reconnects for that service/policy. A changed backend/policy or old unscoped consent becomes OFF until you enable sharing and accept. A random installation ID and authentication token are saved unencrypted in `community-credentials.json` beside the app and reused across launches; the backend stores only a token hash. Keep the file private: copying it shares the installation identity. OFF keeps it but stops transfers; saved credentials never enable sharing by themselves. Existing users must accept the updated storage disclosure once. Reconnect verifies saved authorization with a short-lived ticket without downloading prices or uploading observations. Rejected saved credentials remain disconnected, without automatically registering a replacement. Connection failures keep the saved ON choice. The small dark **refresh icon in the paper's upper-left corner** receives and applies newest data using your purchase discounts, at most once per minute across all tabs, including failed attempts and automatic retries. It stays visible while sharing is off; its adjacent info bubble explains connection state and cooldown. Turning scanner mode off saves sharing OFF; re-enabling scanning does not resume sharing. No character/account data, screenshots, raw OCR, personal weekly allowance or unrelated manual planner edits are sent. Accepted scans batch in memory per outpost/mode: 60s idle, four-minute maximum age, or all active goods complete. Failed batches require manual Retry; OFF discards them, and close/update asks first. No polling, automatic price download on launch, or persistent offline queue.
+- **Sharing status:** the bottom-left dot is green when connected, yellow for connecting/temporary errors/rate limits, red for hard failures, and gray when OFF. Hover for a brief explanation; click yellow/red (or a connected dot with pending goods) for a themed details panel with fixes, remaining wait and **Retry**. Retry stays disabled during active requests/server waits (and the refresh cooldown). Startup honors known server rate-limit delays, including waits longer than a minute; temporary startup privacy-read failures retry twice (5s/10s). Outside startup, connection/read/ticket retries require a known rate-limit delay strictly under one minute. Refresh retries still honor the global one-minute cooldown. Unknown/long non-startup limits require manual retry. OFF/close cancels waits. Ambiguous registration failures and failed scan batches are never automatically replayed. Failed batches stay in memory for explicit Retry with stable deduplication IDs; scans never accepted into the queue require a new scan.
 - **Settings categories**: General contains Always on top, Reset Window Positions and all tooltip switches. Calculator Behavior contains Screen reader mode with subordinate save-region/debug/sharing options, automatic restock, time buffers, and Converted Gold/Ducats profit-display radio buttons. Only the two major category headings retain decorative brackets. Trade History remains at the bottom. Save-region/debug preferences are retained while scanner mode is off. Sharing consent leaves Settings open.
 - **Tooltip settings**: toggle help bubbles, calculation breakdowns, and item/status tips independently. Help bubbles open on click or after a one-second hover; controls with bubbles do not repeat that help as a separate mouseover tooltip. Calculation/item-specific details remain available. Charts, barter materials, letters, and modifiers have dedicated help bubbles.
 - **Notifications**: messages stack vertically in the bottom notification area. Routine status/progress messages last **10 seconds each**, or dismiss immediately when clicked anywhere on their card. Errors remain until individually dismissed with **X**; clicking error text does not clear them. Full messages wrap instead of truncating; a tall mixed stack scrolls. New messages never replace pending ones. Notifications are session-only, not a saved error log.
@@ -154,7 +154,9 @@ A short summary covers transfers, excluded personal/image data, 30-day IP/new
 scan-link retention and retained price history. **Privacy and details** expands
 the service address, legacy-link exemption, cleanup timing and full behavior.
 Cancel is focused/default; Escape or closing declines. No connection starts
-until Enable is chosen. Existing saved consent and OFF behavior are unchanged.
+until Enable is chosen. This batching revision requires existing users to accept
+the updated disclosure once. Saved credentials remain reusable; OFF still stops
+transfers and retains applied local prices.
 
 ## Community scan test
 
@@ -186,12 +188,13 @@ Start-Process .\bin\SettingsOpenTest\MabiCommerceNewLife.exe
 1. Enable **Screen reader mode** in Settings if SCAN is hidden.
 2. Turn on **Settings > Scanned price sharing** and accept the consent dialog.
    The adjacent info bubble explains sending/receiving, privacy and retention.
-   Sharing starts off until consented, then remembers ON/OFF across launches. Credentials exist only in memory;
-   disabling discards them, and re-enabling registers a new installation.
+   Sharing starts off until consented, then remembers ON/OFF across launches.
+   The random installation ID/token stay in `community-credentials.json` beside
+   the app. OFF retains them; reconnect reuses them without another registration.
 3. Press **SCAN** in the main window and select the real price table as usual.
    The local OCR and existing review/application behavior are unchanged.
 4. An automatically accepted scan with reliable Inventory count is eligible for
-   immediate sharing. Trade/Group additionally require an independently read
+   batched sharing. Trade/Group additionally require an independently read
    source price and **exact** observed sale/profit/source arithmetic for every
    destination. Failing automatic checks opens review instead of uploading.
    After confirming all destinations, source price and Inventory stock, the
@@ -209,14 +212,23 @@ Start-Process .\bin\SettingsOpenTest\MabiCommerceNewLife.exe
    attempts. Its countdown is shared across goods/tabs; turning sharing off/on
    does not bypass it. Uploading a scan does not trigger a download.
 7. Cancelled or partial/unconfirmed reviews never upload. Missing destinations
-   still trigger the existing obstruction/retry behavior. A failed ticket/upload
-   is not queued or retried offline. Tickets expire after 60 seconds; confirmed
-   review renews its ticket within the same still-enabled sharing session so
-   time spent reviewing does not invalidate the upload.
+   still trigger the existing obstruction/retry behavior. Accepted structured
+   scans apply locally immediately, then wait in memory per outpost/mode.
+   New accepted rescans replace earlier readings of the same good. Each outpost
+   sends one authenticated request after **60 seconds without scanning it**, at
+   **four minutes from its first queued scan**, or immediately when **all active
+   goods** are queued. Scans no longer request per-good upload tickets.
+   Failed batches stay for explicit **Retry** using the same deduplication IDs;
+   they are never automatically replayed or saved as an offline disk queue.
+   The four-minute bound is a normal scheduling deadline, not a guarantee during
+   errors/rate limits. Observations retain server receipt time, so batching adds
+   approximate age; no particular in-game refresh interval is assumed.
 8. Turn the Settings toggle off to cancel pending transfers, stop sending and
    receiving, and save the newest applied prices/supply locally, preserving consumption.
-   Closing the main app also stops sharing and discards credentials. Disabling
-   does not erase already stored observations.
+   OFF discards pending uploads, not applied local prices or saved credentials.
+   Closing or updating with pending goods offers **Upload and close / Discard /
+   Cancel**. Upload failure keeps the app open. Disabling does not erase already
+   stored observations. A crash or forced termination loses the memory-only queue.
 
 Set the correct **source-post merchant level and discount gear before scanning**.
 The source price in the game already includes those discounts. Uploads reverse

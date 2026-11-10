@@ -18,6 +18,8 @@ public sealed class CommunityLocalIntegrationTests
         var endpoint = Environment.GetEnvironmentVariable("MABI_COMMUNITY_TEST_ENDPOINT");
         if (string.IsNullOrEmpty(endpoint))
             Assert.Inconclusive("Opt-in local test: set MABI_COMMUNITY_TEST_ENDPOINT to an isolated local Worker.");
+        Assert.AreEqual("http", CommunityClient.ValidateEndpoint(endpoint).Scheme,
+            "Synthetic integration observations must never reach production.");
         var fixture = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Ocr", "Client_HighlanderOreBelvast.png");
         if (!File.Exists(fixture)) Assert.Inconclusive("Owner's local OCR fixture is unavailable.");
         using var bitmap = new Bitmap(fixture);
@@ -71,6 +73,17 @@ public sealed class CommunityLocalIntegrationTests
         Assert.AreEqual(791, CommunityPurchasePrice.ForRecipient(basePrice, 5));
         Assert.AreEqual(341, normalized.Prices.Single(p => p.PostId == 8).Profit);
         Assert.AreEqual(discountedReceipt.Sequence, (await recipient.SyncAsync(default)).NextCursor);
+        var batched = discounted with { ScanId = Guid.NewGuid().ToString() };
+        var batch = new CommunityPendingBatch(new("trade", scan.SourcePostId), [batched]);
+        var batchReceipt = (await client.UploadBatchAsync(batch, client.ConnectedSession!.Value, default)).Single();
+        Assert.IsFalse(batchReceipt.Duplicate);
+        var batchRetry = (await client.UploadBatchAsync(batch, client.ConnectedSession.Value, default)).Single();
+        Assert.IsTrue(batchRetry.Duplicate);
+        Assert.AreEqual(batchReceipt.Sequence, batchRetry.Sequence);
+        var batchedObservation = (await recipient.SyncAsync(default)).Observations.Single(o => o.Sequence == batchReceipt.Sequence);
+        Assert.AreEqual(7454, batchedObservation.Stock);
+        Assert.AreEqual(833, batchedObservation.SourcePrice);
+        Assert.AreEqual(1116, batchedObservation.Prices.Single(p => p.PostId == 8).SalePrice);
         Console.WriteLine($"Local Worker parsed {received.Prices.Count} prices; receipt {receipt.Sequence}, source775, stock7454, Belvast1116/profit341.");
     }
 }

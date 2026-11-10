@@ -19,7 +19,7 @@
                            TextAlignment="Center" VerticalAlignment="Center" />
             </Border>
             <TextBlock x:Name="ConsentSummary" Grid.Row="2" Foreground="#E9D9B8" FontSize="13" TextWrapping="Wrap"
-                       Text="Send verified scans and receive community prices. Review edits are marked manual.&#10;&#10;No account data, screenshots or raw OCR. IP logs and new scan links expire after 30 days; price history stays.&#10;&#10;A random ID and token stay saved locally across launches. Turn sharing off anytime." />
+                       Text="Share verified scans in outpost batches after 60s idle, at 4min, or when complete. Review edits are marked manual.&#10;&#10;No account data, screenshots or raw OCR. IP logs/scan links: 30 days; price history stays.&#10;&#10;ID and token stay saved locally. OFF discards pending uploads; closing asks." />
             <Expander x:Name="PrivacyDetails" Grid.Row="3" Header="Privacy and details" Foreground="#E9D9B8" FontSize="12"
                       Expanded="PrivacyDetails_Changed" Collapsed="PrivacyDetails_Changed">
                 <ScrollViewer MaxHeight="76" VerticalScrollBarVisibility="Auto">

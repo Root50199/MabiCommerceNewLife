@@ -14,6 +14,7 @@
     <Content Include="..\src\Views\AppUpdateWindow.xaml" Link="GuideTargets\AppUpdateWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\src\Views\SharingConsentWindow.xaml" Link="GuideTargets\SharingConsentWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\src\Views\CommunityStatusWindow.xaml" Link="GuideTargets\CommunityStatusWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\src\Views\CommunityPendingWindow.xaml" Link="GuideTargets\CommunityPendingWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\src\Planning\GameIds.cs" Link="GameIds.cs" />
     <Compile Include="..\src\Planning\ProfitCalculator.cs" Link="ProfitCalculator.cs" />
     <Compile Include="..\src\Planning\CommerceRewards.cs" Link="CommerceRewards.cs" />

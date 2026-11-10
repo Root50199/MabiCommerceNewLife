@@ -363,9 +363,11 @@ public partial class MainWindow : Window
         _lastTimeRefreshMinute = CurrentMinute();
         _weeklyResetTimer.Tick += (_, _) => AutoRefreshGroupStockIfDue();
         Microsoft.Win32.SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
-        Closing += (_, _) =>
+        Closing += (_, e) =>
         {
+            if (e.Cancel || DeferClosingForCommunityQueue(e)) return;
             _helpClosing = true;
+            _updateLifetime.Cancel();
             _scanCancellation?.Cancel();
             ShutdownCommunitySharing();
             StopTutorial();
@@ -2866,6 +2868,7 @@ public partial class MainWindow : Window
         }
 
         SettingsPopup.IsOpen = false;
+        var communitySession = BeginCommunityScan();
         var region = _plannerPreferences.SaveLastScanRegion ? _lastSuccessfulScanRegion : null;
         while (true)
         {
@@ -2886,7 +2889,6 @@ public partial class MainWindow : Window
             SetStatus(usingSavedRegion ? "Reading the saved scan region..." : "Reading the selected price list...");
             var capturedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var capturedDiscounts = _posts.ToDictionary(post => post.Id, post => PurchaseDiscountPercentFor(post.Id));
-            var communityTicket = await BeginCommunityScanAsync(cancellationToken);
 #if DEBUG
             _lastScanFailureDetails = string.Empty;
 #endif
@@ -2969,7 +2971,7 @@ public partial class MainWindow : Window
             var accepted = ApplyPriceListScan(read);
             if (_communityApplicationsEnabled) RefreshCommunityValues();
             if (accepted is not null)
-                await SharePriceListScanAsync(read, accepted, communityTicket, cancellationToken);
+                await SharePriceListScanAsync(read, accepted, communitySession, cancellationToken);
             return;
         }
     }
