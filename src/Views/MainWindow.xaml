@@ -53,6 +53,11 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="ScannerSuboption" TargetType="FrameworkElement">
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45" /></Trigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="Entry" TargetType="TextBox">
             <Setter Property="Height" Value="22" />
             <Setter Property="Padding" Value="5,2" />
@@ -178,6 +183,38 @@
                                             </Border>
                                         </StackPanel>
                                         <ScrollViewer Grid.Row="1" CanContentScroll="True" VerticalScrollBarVisibility="Auto" MaxHeight="195">
+                                            <ScrollViewer.Resources>
+                                                <Style TargetType="ScrollBar">
+                                                    <Setter Property="Width" Value="14" />
+                                                    <Setter Property="MinWidth" Value="14" />
+                                                    <Setter Property="Background" Value="#74623F" />
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="ScrollBar">
+                                                                <Grid Background="{TemplateBinding Background}">
+                                                                    <Track x:Name="PART_Track" Orientation="{TemplateBinding Orientation}" IsDirectionReversed="True" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value}" ViewportSize="{TemplateBinding ViewportSize}">
+                                                                        <Track.Thumb>
+                                                                            <Thumb>
+                                                                                <Thumb.Template>
+                                                                                    <ControlTemplate TargetType="Thumb">
+                                                                                        <Border Background="#CEAD54" BorderBrush="#785C30" BorderThickness="1">
+                                                                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                                                                                                <Rectangle Width="5" Height="1" Fill="#947940" Margin="0,1" />
+                                                                                                <Rectangle Width="5" Height="1" Fill="#947940" Margin="0,1" />
+                                                                                                <Rectangle Width="5" Height="1" Fill="#947940" Margin="0,1" />
+                                                                                            </StackPanel>
+                                                                                        </Border>
+                                                                                    </ControlTemplate>
+                                                                                </Thumb.Template>
+                                                                            </Thumb>
+                                                                        </Track.Thumb>
+                                                                    </Track>
+                                                                </Grid>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </ScrollViewer.Resources>
                                             <ItemsPresenter />
                                         </ScrollViewer>
                                     </Grid>
@@ -256,7 +293,7 @@
             </Setter>
         </Style>
         <DataTemplate x:Key="PickerNameTemplate">
-            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Name}" />
+            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Name}" local:TooltipCategoryService.Category="ItemStatus" />
         </DataTemplate>
         <DataTemplate x:Key="PostPickerTemplate">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -299,7 +336,7 @@
                             </Style>
                         </local:OutlinedTextBlock.Style>
                     </local:OutlinedTextBlock>
-                    <ComboBox Height="22" Margin="0,0,6,0" HorizontalAlignment="Stretch" ItemsSource="{Binding RotationAlternatives}" SelectedItem="{Binding Mode=OneWay}" Visibility="{Binding HasRotationAlternatives, Converter={StaticResource BooleanToVisibility}}" Background="#B2241C12" Padding="3,0,18,0" SelectionChanged="RotationPicker_SelectionChanged" PreviewMouseLeftButtonDown="RotationPicker_PreviewMouseLeftButtonDown" PreviewMouseWheel="RotationPicker_PreviewMouseWheel" ToolTip="{Binding RotationHistoryText}" ToolTipService.ShowDuration="60000">
+                    <ComboBox Height="22" Margin="0,0,6,0" HorizontalAlignment="Stretch" ItemsSource="{Binding RotationAlternatives}" SelectedItem="{Binding Mode=OneWay}" Visibility="{Binding HasRotationAlternatives, Converter={StaticResource BooleanToVisibility}}" Background="#B2241C12" Padding="3,0,18,0" SelectionChanged="RotationPicker_SelectionChanged" PreviewMouseLeftButtonDown="RotationPicker_PreviewMouseLeftButtonDown" PreviewMouseWheel="RotationPicker_PreviewMouseWheel" ToolTip="{Binding RotationHistoryText}" ToolTipService.ShowDuration="60000" local:TooltipCategoryService.Category="ItemStatus">
                         <ComboBox.Style>
                             <Style TargetType="ComboBox" BasedOn="{StaticResource GameCombo}">
                                 <Style.Triggers>
@@ -373,22 +410,22 @@
                     <ColumnDefinition Width="64" />
                     <ColumnDefinition Width="30" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="{Binding PostName}" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding PostName}">
+                <TextBlock Text="{Binding PostName}" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                     <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#533715" /><Style.Triggers><DataTrigger Binding="{Binding PostId}" Value="-1"><Setter Property="Foreground" Value="#5448ED" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                 </TextBlock>
-                <TextBox Grid.Column="1" Text="{Binding DestinationPrice, UpdateSourceTrigger=PropertyChanged}" TextChanged="DestinationPrice_TextChanged" GotKeyboardFocus="DestinationPrice_GotKeyboardFocus" LostKeyboardFocus="DestinationPrice_LostKeyboardFocus" Background="Transparent" BorderBrush="#B8A57C" BorderThickness="0,0,0,1" Foreground="#342C20" FontSize="10" Padding="2,0" TextAlignment="Right" VerticalContentAlignment="Center" ToolTip="Enter an observed sale price; Smuggler has no automatic quote" />
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="2,0,0,0" VerticalAlignment="Center" Background="Transparent" ToolTip="{Binding PerItemProfitLossToolTip}">
+                <TextBox Grid.Column="1" Text="{Binding DestinationPrice, UpdateSourceTrigger=PropertyChanged}" TextChanged="DestinationPrice_TextChanged" GotKeyboardFocus="DestinationPrice_GotKeyboardFocus" LostKeyboardFocus="DestinationPrice_LostKeyboardFocus" Background="Transparent" BorderBrush="#B8A57C" BorderThickness="0,0,0,1" Foreground="#342C20" FontSize="10" Padding="2,0" TextAlignment="Right" VerticalContentAlignment="Center" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="2,0,0,0" VerticalAlignment="Center" Background="Transparent" ToolTip="{Binding PerItemProfitLossToolTip}" local:TooltipCategoryService.Category="Calculation">
                     <TextBlock Text="{Binding PerItemProfitLossText}" Foreground="{Binding PerItemProfitLossBrush}" FontSize="10" VerticalAlignment="Center" />
                     <Image Source="{DynamicResource GoldCurrencyArt}" Width="10" Height="10" Margin="2,0,0,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality">
                         <Image.Style><Style TargetType="Image"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding PerItemProfitIsGold}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Image.Style>
                     </Image>
                     <Image Source="{DynamicResource DucatCurrencyArt}" Width="10" Height="10" Margin="2,0,0,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Visibility="{Binding PerItemProfitIsDucat, Converter={StaticResource BooleanToVisibility}}" />
                 </StackPanel>
-                <TextBlock Grid.Column="3" Text="{Binding EstimatedTimeText}" Foreground="#533715" FontSize="10" TextAlignment="Right" VerticalAlignment="Center" ToolTip="{Binding EstimatedTimeToolTip}" />
+                <TextBlock Grid.Column="3" Text="{Binding EstimatedTimeText}" Foreground="#533715" FontSize="10" TextAlignment="Right" VerticalAlignment="Center" ToolTip="{Binding EstimatedTimeToolTip}" local:TooltipCategoryService.Category="Calculation" />
             </Grid>
         </DataTemplate>
         <DataTemplate x:Key="DestinationTotalTemplate">
-            <Grid Height="15" ToolTip="{Binding ProfitDetails}">
+            <Grid Height="15" ToolTip="{Binding ProfitDetails}" local:TooltipCategoryService.Category="Calculation">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="32"/><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                 <TextBlock Text="{Binding PostName}" Foreground="#342C20" FontSize="9" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                 <TextBlock Grid.Column="1" Text="{Binding EstimatedTimeText}" Foreground="#6A5A41" FontSize="9" TextAlignment="Center" VerticalAlignment="Center" />
@@ -400,7 +437,7 @@
             </Grid>
         </DataTemplate>
         <DataTemplate x:Key="AutoPlanTemplate">
-            <Grid Width="202" Height="20" Margin="0" ToolTip="{Binding Tooltip}">
+            <Grid Width="202" Height="20" Margin="0" ToolTip="{Binding Tooltip}" local:TooltipCategoryService.Category="Calculation">
                 <Grid.RowDefinitions><RowDefinition Height="10"/><RowDefinition Height="10"/></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="28"/><ColumnDefinition Width="48"/><ColumnDefinition Width="56"/></Grid.ColumnDefinitions>
                 <TextBlock Text="{Binding DestinationName}" Foreground="#342C20" FontSize="9" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
@@ -436,7 +473,7 @@
             </Grid>
         </DataTemplate>
         <DataTemplate x:Key="CargoListTemplate">
-            <Border Height="34" Margin="2,0,2,3" Background="#E4D3AC" BorderBrush="#A88A46" BorderThickness="1" CornerRadius="2" ToolTip="{Binding Tooltip}">
+            <Border Height="34" Margin="2,0,2,3" Background="#E4D3AC" BorderBrush="#A88A46" BorderThickness="1" CornerRadius="2" ToolTip="{Binding Tooltip}" local:TooltipCategoryService.Category="Calculation">
                 <Grid Margin="3,0,5,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="28" />
@@ -488,25 +525,31 @@
 
             <Border Canvas.Left="0" Canvas.Top="0" Width="825" Height="98" Background="Transparent" MouseLeftButtonDown="WindowHeader_MouseLeftButtonDown" />
             <local:OutlinedTextBlock Text="MabiCommerce NewLife" Foreground="#F7F6E9" FontSize="14" FontWeight="SemiBold" Canvas.Left="310" Canvas.Top="103" Width="205" Height="20" TextAlignment="Center" IsHitTestVisible="False" />
-            <Button Canvas.Left="769" Canvas.Top="80" Width="15" Height="15" Padding="0" Click="Minimize_Click" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Minimize">
+            <TextBlock x:Name="AppVersionText" Foreground="#E9D9B8" FontSize="8" Canvas.Left="46" Canvas.Top="100" Width="130" Height="11" TextAlignment="Left" IsHitTestVisible="False" />
+            <local:OutlinedTextBlock Text="by ROOT50199" Foreground="#E9D9B8" FontSize="9" Canvas.Left="310" Canvas.Top="123" Width="205" Height="14" TextAlignment="Center" IsHitTestVisible="False" />
+            <Button Canvas.Left="769" Canvas.Top="80" Width="15" Height="15" Padding="0" Click="Minimize_Click" Background="Transparent" BorderThickness="0" Cursor="Hand">
                 <Image x:Name="MinimizeButtonImage" Width="15" Height="15" RenderOptions.BitmapScalingMode="NearestNeighbor" />
             </Button>
-            <Button Canvas.Left="785" Canvas.Top="80" Width="15" Height="15" Padding="0" Click="Close_Click" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Close">
+            <Button Canvas.Left="785" Canvas.Top="80" Width="15" Height="15" Padding="0" Click="Close_Click" Background="Transparent" BorderThickness="0" Cursor="Hand">
                 <Image x:Name="CloseButtonImage" Width="15" Height="15" RenderOptions.BitmapScalingMode="NearestNeighbor" />
             </Button>
             <Button x:Name="SettingsButton" Canvas.Left="758" Canvas.Top="108" Width="24" Height="24" Padding="1" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" Cursor="Hand" ToolTip="Settings" Click="SettingsButton_Click">
                 <Image x:Name="SettingsButtonImage" Width="20" Height="20" RenderOptions.BitmapScalingMode="NearestNeighbor" />
             </Button>
+            <Button x:Name="ManualButton" Canvas.Left="730" Canvas.Top="108" Width="24" Height="24" Padding="1" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                    Cursor="Hand" ToolTip="User manual and tutorial" AutomationProperties.Name="Open user manual and tutorial" Click="ManualButton_Click">
+                <Image x:Name="ManualButtonImage" Width="22" Height="22" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Button>
             <Popup x:Name="SettingsPopup" Placement="Bottom" HorizontalOffset="-246" VerticalOffset="2" StaysOpen="True" AllowsTransparency="True" PopupAnimation="Fade">
-                <Canvas Width="270" Height="474" ClipToBounds="True">
-                    <Image Canvas.Left="0" Canvas.Top="0" Source="{DynamicResource SettingsMenuBackgroundArt}" Width="270" Height="474" Stretch="Fill" />
+                <Canvas x:Name="SettingsMenuCanvas" Width="270" Height="592" ClipToBounds="True">
+                    <Image Canvas.Left="0" Canvas.Top="0" Source="{DynamicResource SettingsMenuBackgroundArt}" Width="270" Height="592" Stretch="Fill" />
                     <Grid Canvas.Left="12" Canvas.Top="4" Width="252" Height="40">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="18"/></Grid.ColumnDefinitions>
-                        <Thumb Grid.ColumnSpan="2" Background="Transparent" DragDelta="SettingsPopup_DragDelta" ToolTip="Drag to move Settings">
+                        <Thumb Grid.ColumnSpan="2" Background="Transparent" DragDelta="SettingsPopup_DragDelta">
                             <Thumb.Template>
                                 <ControlTemplate TargetType="Thumb">
                                     <Border Background="{TemplateBinding Background}" Padding="4,0">
-                                        <TextBlock Text="SETTINGS" Foreground="#F4ECD9" FontSize="10" FontWeight="Bold" TextAlignment="Center" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                                        <TextBlock Text="SETTINGS" Foreground="#F4ECD9" FontSize="12" FontWeight="Bold" TextAlignment="Center" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
                                     </Border>
                                 </ControlTemplate>
                             </Thumb.Template>
@@ -520,76 +563,60 @@
                         <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" HorizontalAlignment="Right" VerticalAlignment="Top" Stretch="Fill" />
                         <Image Source="{DynamicResource BracketBottomLeftArt}" Width="14" Height="18" HorizontalAlignment="Left" VerticalAlignment="Bottom" Stretch="Fill" />
                         <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" HorizontalAlignment="Right" VerticalAlignment="Bottom" Stretch="Fill" />
-                        <TextBlock Text="GENERAL" Foreground="#5A4325" FontSize="8" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center" />
+                        <TextBlock Text="GENERAL" Foreground="#5A4325" FontSize="10" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center" />
                     </Grid>
-                    <Grid Canvas.Left="22" Canvas.Top="96" Width="230" Height="31">
+                    <Grid Canvas.Left="22" Canvas.Top="94" Width="230" Height="24">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <TextBlock Text="Always on top" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" />
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <CheckBox x:Name="AlwaysOnTopCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="AlwaysOnTop_Changed" Unchecked="AlwaysOnTop_Changed" ToolTip="Keep the app above other windows." />
+                            <TextBlock Text="Always on top" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
+                            <local:InfoBubble Message="Keeps the planner above other windows." TipType="Information" Margin="2,-2,0,0" VerticalAlignment="Top" />
+                            <CheckBox x:Name="AlwaysOnTopCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="AlwaysOnTop_Changed" Unchecked="AlwaysOnTop_Changed" />
                         </StackPanel>
                     </Grid>
-                    <Grid Canvas.Left="22" Canvas.Top="128" Width="230" Height="31">
+                    <StackPanel Canvas.Left="22" Canvas.Top="198" Width="230" Height="24" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Check updates on app open" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
+                        <local:InfoBubble x:Name="UpdateInfo" Message="Checks this app's public GitHub releases once when opened. Includes stable and beta Windows x64 releases. GitHub receives the connection IP and app updater user-agent, not planner/account data. Downloads and installation always require your permission. Updates preserve settings/history, close this instance and restart via a temporary Windows helper; no admin elevation. Turn this off for manual checks only." TipType="Information" Margin="2,0,0,0" VerticalAlignment="Center" />
+                        <CheckBox x:Name="CheckUpdatesOnOpenCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="CheckUpdatesOnOpen_Changed" Unchecked="CheckUpdatesOnOpen_Changed" />
+                    </StackPanel>
+                    <Button x:Name="CheckForUpdatesButton" Canvas.Left="45" Canvas.Top="224" Width="180" Height="22" Click="CheckForUpdates_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="10" FontWeight="Bold" Cursor="Hand" Content="CHECK FOR UPDATES" />
+                    <StackPanel x:Name="CalculatorSettingsRows" Canvas.Left="22" Canvas.Top="278" Width="230">
+                    <Grid Height="24">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <TextBlock Text="Screen reader mode" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" />
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <CheckBox x:Name="ScreenReaderModeCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="ScreenReaderMode_Changed" Unchecked="ScreenReaderMode_Changed" ToolTip="Enable manual screen-region price reading." />
+                            <TextBlock Text="Screen reader mode" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
+                            <local:InfoBubble Message="Shows a button to scan prices in a screen area you select." TipType="Tutorial" Margin="2,-2,0,0" VerticalAlignment="Top" />
+                            <CheckBox x:Name="ScreenReaderModeCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="ScreenReaderMode_Changed" Unchecked="ScreenReaderMode_Changed" />
                         </StackPanel>
                     </Grid>
-                    <Grid Canvas.Left="22" Canvas.Top="160" Width="230" Height="31">
+                    <Grid x:Name="SaveScanRegionSettingsRow" Style="{StaticResource ScannerSuboption}" Margin="16,0,0,0" Height="24" IsEnabled="{Binding IsChecked, ElementName=ScreenReaderModeCheckBox}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <TextBlock Text="Auto restock weekly goods at reset" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" />
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <CheckBox x:Name="AutoRefreshGroupStockCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="AutoRefreshGroupStock_Changed" Unchecked="AutoRefreshGroupStock_Changed" ToolTip="Refill weekly-limited goods at the weekly reset (Thursday 7 AM Pacific)" />
+                            <TextBlock Text="Save last successful scan region" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
+                            <local:InfoBubble Message="SCAN reuses the last selected screen area. Only its coordinates are saved." TipType="Information" Margin="2,-2,0,0" VerticalAlignment="Top" />
+                            <CheckBox x:Name="SaveLastScanRegionCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="SaveLastScanRegion_Changed" Unchecked="SaveLastScanRegion_Changed" />
                         </StackPanel>
                     </Grid>
-                    <Grid Canvas.Left="22" Canvas.Top="192" Width="230" Height="31">
+                    <Grid x:Name="ScanDebugSettingsRow" Style="{StaticResource ScannerSuboption}" Margin="16,0,0,0" Height="24" IsEnabled="{Binding IsChecked, ElementName=ScreenReaderModeCheckBox}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <TextBlock Text="Save last successful scan region" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" />
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <CheckBox x:Name="SaveLastScanRegionCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="SaveLastScanRegion_Changed" Unchecked="SaveLastScanRegion_Changed" ToolTip="SCAN reuses the last working region" />
+                            <TextBlock Text="Scan debug mode" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" Background="Transparent" />
+                            <local:InfoBubble Message="Dev-only. Saves accepted scan images and OCR text in the workspace ScanDebug folder." TipType="Information" Margin="2,-2,0,0" VerticalAlignment="Top" />
+                            <CheckBox x:Name="ScanDebugModeCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="ScanDebugMode_Changed" Unchecked="ScanDebugMode_Changed" />
                         </StackPanel>
                     </Grid>
-                    <Grid Canvas.Left="22" Canvas.Top="224" Width="230" Height="31">
+                    <StackPanel x:Name="SharingSettingsRow" Style="{StaticResource ScannerSuboption}" Margin="16,0,0,0" Height="24" Orientation="Horizontal" VerticalAlignment="Center" IsEnabled="{Binding IsChecked, ElementName=ScreenReaderModeCheckBox}">
+                        <TextBlock Text="Scanned price sharing" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
+                        <local:InfoBubble x:Name="CommunitySharingInfo" Message="Enables sending and receiving scanned price and Inventory supply data. Automatically checked scans and complete scans confirmed in OCR review are shared. Edited source, stock and price lines are flagged manual; unchanged lines are reviewed OCR. Reviewed prices can update other planners. This choice is saved for the current backend and sharing policy; a change requires fresh consent. Credentials stay in memory. Turning scanner mode off also turns sharing off. No character or account data is transmitted or recorded. No images, raw OCR or personal weekly allowance are sent. Private IP logs and new observations' installation links expire after 30 days; pre-policy links remain unchanged. Unused expired installation credentials are deleted. Individual price/stock history remains indefinitely. Turning off saves newest applied values locally, without resetting supply or weekly limits. Refresh once per minute; no background polling. User and Dev builds use the same Cloudflare-hosted online service." TipType="Information" Margin="2,0,0,0" VerticalAlignment="Center" />
+                        <CheckBox x:Name="CommunitySharingCheckBox" AutomationProperties.Name="Scanned price sharing" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="CommunitySharing_Changed" Unchecked="CommunitySharing_Changed" />
+                    </StackPanel>
+                    <Grid Height="24" Margin="0,4,0,0">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <TextBlock Text="Ship boarding buffer" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" Background="Transparent" ToolTipService.ShowDuration="20000" ToolTip="Ship travel times assume you miss a ship if you would reach the dock less than this many seconds before it leaves, so the estimate waits for the next one. Turn it off to assume you always board on time." />
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <CheckBox x:Name="FerryBufferCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="FerryBuffer_Changed" Unchecked="FerryBuffer_Changed" ToolTip="Arriving this close to departure counts as missing the ship" />
+                            <TextBlock Text="Auto restock weekly goods at reset" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
+                            <local:InfoBubble Message="Refills weekly-limited stock at the Thursday reset (7 AM Pacific)." TipType="Information" Margin="2,-2,0,0" VerticalAlignment="Top" />
+                            <CheckBox x:Name="AutoRefreshGroupStockCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="AutoRefreshGroupStock_Changed" Unchecked="AutoRefreshGroupStock_Changed" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid Height="24" Margin="0,4,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <TextBlock Text="Ship boarding buffer" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" Background="Transparent" />
+                            <local:InfoBubble Message="A short arrival buffer can add a wait for the next ship. Enter whole seconds from 0 to 300." TipType="Information" Margin="2,-2,0,0" VerticalAlignment="Top" />
+                            <CheckBox x:Name="FerryBufferCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="FerryBuffer_Changed" Unchecked="FerryBuffer_Changed" />
                             <Border x:Name="FerryBufferSecondsPaper" Width="34" Height="18" Margin="8,0,0,0" BorderBrush="#78633B" BorderThickness="1" VerticalAlignment="Center">
                                 <Grid>
                                     <Grid.RowDefinitions>
@@ -600,23 +627,16 @@
                                     <Border Grid.Row="0" Background="{DynamicResource PaperTopBrush}" />
                                     <Border Grid.Row="1" Background="{DynamicResource PaperFillBrush}" />
                                     <Border Grid.Row="2" Background="{DynamicResource PaperBottomBrush}" />
-                                    <TextBox x:Name="FerryBufferSecondsInput" Grid.RowSpan="3" Background="Transparent" BorderThickness="0" Foreground="#2E2414" CaretBrush="#2E2414" FontSize="9" FontWeight="Bold" Padding="0,0,2,0" MaxLength="3" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" TextChanged="FerryBufferSeconds_TextChanged" LostKeyboardFocus="FerryBufferSeconds_LostKeyboardFocus" IsEnabledChanged="FerryBufferSecondsInput_IsEnabledChanged" ToolTip="Whole seconds, 0-300" AutomationProperties.Name="Ship boarding buffer in seconds" />
+                                    <TextBox x:Name="FerryBufferSecondsInput" Grid.RowSpan="3" Background="Transparent" BorderThickness="0" Foreground="#2E2414" CaretBrush="#2E2414" FontSize="11" FontWeight="Bold" Padding="0,0,2,0" MaxLength="3" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" TextChanged="FerryBufferSeconds_TextChanged" LostKeyboardFocus="FerryBufferSeconds_LostKeyboardFocus" IsEnabledChanged="FerryBufferSecondsInput_IsEnabledChanged" AutomationProperties.Name="Ship boarding buffer in seconds" />
                                 </Grid>
                             </Border>
-                            <TextBlock Text="sec" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0,0,0" />
+                            <TextBlock Text="sec" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0,0,0" />
                         </StackPanel>
                     </Grid>
-                    <Grid Canvas.Left="22" Canvas.Top="256" Width="230" Height="31">
+                    <Grid Height="24" Margin="0,4,0,0">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <TextBlock Text="Load time buffer" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" Background="Transparent" ToolTipService.ShowDuration="20000" ToolTip="Seconds added to land route times for every region portal (load screen) the route crosses. Ship crossings are not counted. Set 0 to ignore loading." />
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
+                            <TextBlock Text="Load time buffer" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" Background="Transparent" />
+                            <local:InfoBubble Message="Adds 0–300 seconds per land portal. Set 0 to ignore loading." TipType="Information" Margin="2,-2,0,0" VerticalAlignment="Top" />
                             <Border x:Name="PortalLoadBufferSecondsPaper" Width="34" Height="18" Margin="10,0,0,0" BorderBrush="#78633B" BorderThickness="1" VerticalAlignment="Center">
                                 <Grid>
                                     <Grid.RowDefinitions>
@@ -627,56 +647,64 @@
                                     <Border Grid.Row="0" Background="{DynamicResource PaperTopBrush}" />
                                     <Border Grid.Row="1" Background="{DynamicResource PaperFillBrush}" />
                                     <Border Grid.Row="2" Background="{DynamicResource PaperBottomBrush}" />
-                                    <TextBox x:Name="PortalLoadBufferSecondsInput" Grid.RowSpan="3" Background="Transparent" BorderThickness="0" Foreground="#2E2414" CaretBrush="#2E2414" FontSize="9" FontWeight="Bold" Padding="0,0,2,0" MaxLength="3" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" TextChanged="PortalLoadBufferSeconds_TextChanged" LostKeyboardFocus="PortalLoadBufferSeconds_LostKeyboardFocus" PreviewMouseLeftButtonDown="SettingsSeconds_PreviewMouseLeftButtonDown" GotKeyboardFocus="SettingsSeconds_GotKeyboardFocus" ToolTip="Whole seconds per portal, 0-300" AutomationProperties.Name="Load time buffer in seconds per portal" />
+                                    <TextBox x:Name="PortalLoadBufferSecondsInput" Grid.RowSpan="3" Background="Transparent" BorderThickness="0" Foreground="#2E2414" CaretBrush="#2E2414" FontSize="11" FontWeight="Bold" Padding="0,0,2,0" MaxLength="3" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" TextChanged="PortalLoadBufferSeconds_TextChanged" LostKeyboardFocus="PortalLoadBufferSeconds_LostKeyboardFocus" PreviewMouseLeftButtonDown="SettingsSeconds_PreviewMouseLeftButtonDown" GotKeyboardFocus="SettingsSeconds_GotKeyboardFocus" AutomationProperties.Name="Load time buffer in seconds per portal" />
                                 </Grid>
                             </Border>
-                            <TextBlock Text="sec / portal" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0,0,0" />
+                            <TextBlock Text="sec / portal" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0,0,0" />
                         </StackPanel>
                     </Grid>
-                    <Grid Canvas.Left="22" Canvas.Top="288" Width="230" Height="31">
+                    <StackPanel Margin="0,6,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Profit display" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" />
+                            <local:InfoBubble Message="Choose converted Gold or Ducats for Trade and Group profit. Barter remains Gold because its materials are valued in Gold." TipType="Information" Margin="4,0,0,0" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="12,5,0,0">
+                            <RadioButton x:Name="TradeProfitInGoldRadio" GroupName="ProfitCurrency" Content="Converted Gold" Foreground="#E9D9B8" FontSize="10" Margin="0,0,12,0" Checked="TradeProfitCurrency_Changed" />
+                            <RadioButton x:Name="TradeProfitInDucatsRadio" GroupName="ProfitCurrency" Content="Ducats" Foreground="#E9D9B8" FontSize="10" Checked="TradeProfitCurrency_Changed" />
+                        </StackPanel>
+                    </StackPanel>
+                    </StackPanel>
+                    <Grid Canvas.Left="22" Canvas.Top="174" Width="230" Height="24">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <TextBlock Text="Detailed reward tooltips" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" Background="Transparent" ToolTipService.ShowDuration="20000" ToolTip="Route and barter tooltips normally show the basic Gold + Ducats × rate = total Gold formula. Turn this on to show every factor instead: Commerce Mastery, Letter of Guarantee, Merchant Rating, EXP and seasonal score." />
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <CheckBox x:Name="DetailedRewardTooltipsCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="DetailedRewardTooltips_Changed" Unchecked="DetailedRewardTooltips_Changed" ToolTip="Show the full reward breakdown in every reward tooltip" />
+                            <TextBlock Text="Detailed reward tooltips" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" Background="Transparent" />
+                            <local:InfoBubble Message="Adds bonus factors and reward formulas to route and barter breakdowns." TipType="Information" Margin="2,-2,0,0" VerticalAlignment="Top" />
+                            <CheckBox x:Name="DetailedRewardTooltipsCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="DetailedRewardTooltips_Changed" Unchecked="DetailedRewardTooltips_Changed" />
                         </StackPanel>
                     </Grid>
-                    <Grid Canvas.Left="22" Canvas.Top="320" Width="230" Height="31">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <TextBlock Text="Trade profit in Gold" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" Background="Transparent" ToolTipService.ShowDuration="20000" ToolTip="Show the per-item profit column of Trade and Group goods as converted Gold (raw Gold + Ducats × Gold per Ducat, with Commerce Mastery and other active bonuses) instead of the sale price minus buy price in Ducats. Barter goods always show Gold." />
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <CheckBox x:Name="TradeProfitInGoldCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="TradeProfitInGold_Changed" Unchecked="TradeProfitInGold_Changed" ToolTip="Show Trade and Group per-item profit as converted Gold" />
+                    <Grid Canvas.Left="22" Canvas.Top="146" Width="230" Height="24">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Tooltips" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" />
+                            <local:InfoBubble Message="Help toggles ?/i bubbles. Calc controls calculation breakdowns; Items controls item and status tips." TipType="Information" Margin="3,0,0,0" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,6,0">
+                                <TextBlock Text="Help" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="0,0,3,0" />
+                                <CheckBox x:Name="HelpBubblesCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Checked="HelpBubbles_Changed" Unchecked="HelpBubbles_Changed" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,6,0">
+                                <TextBlock Text="Calc" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="0,0,3,0" />
+                                <CheckBox x:Name="CalculationBreakdownsCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Checked="CalculationBreakdowns_Changed" Unchecked="CalculationBreakdowns_Changed" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Items" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="0,0,3,0" />
+                                <CheckBox x:Name="ItemStatusTooltipsCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Checked="ItemStatusTooltips_Changed" Unchecked="ItemStatusTooltips_Changed" />
+                            </StackPanel>
                         </StackPanel>
                     </Grid>
-                    <Grid x:Name="ScanDebugSettingsRow" Canvas.Left="22" Canvas.Top="352" Width="230" Height="31">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomLeftArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <TextBlock Text="Scan debug mode" Foreground="#E9D9B8" FontSize="8" VerticalAlignment="Center" Margin="3,0" Background="Transparent" ToolTipService.ShowDuration="20000" ToolTip="Dev-only, off by default. When on, every price-list scan the app judges auto-accept worthy saves its captured region (PNG) and OCR text output to the source workspace's ScanDebug folder so the results can be verified later. Nothing is saved outside a source checkout. Delete the folder when finished." />
-                            <Grid Width="12" Height="18">
-                                <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" Stretch="Fill" />
-                                <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" Stretch="Fill" />
-                            </Grid>
-                            <CheckBox x:Name="ScanDebugModeCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center" Checked="ScanDebugMode_Changed" Unchecked="ScanDebugMode_Changed" ToolTip="Save auto-accept-worthy scan captures and OCR text for later verification" />
-                        </StackPanel>
+                    <Button x:Name="TradeHistoryButton" Canvas.Left="65" Canvas.Top="512" Width="140" Height="22" Click="TradeHistoryButton_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="10" FontWeight="Bold" Cursor="Hand" Content="TRADE HISTORY" />
+                    <TextBlock Canvas.Left="22" Canvas.Top="542" Width="226" Height="32" FontSize="10" TextWrapping="Wrap" TextAlignment="Center">
+                        <Hyperlink x:Name="RepositoryLink" NavigateUri="https://github.com/Root50199/MabiCommerceNewLife" RequestNavigate="RepositoryLink_RequestNavigate" Foreground="#E9D9B8">https://github.com/Root50199/MabiCommerceNewLife</Hyperlink>
+                    </TextBlock>
+                    <local:InfoBubble Canvas.Left="208" Canvas.Top="516" Message="Lists loads sold with Sell and tracks running totals." TipType="Information" />
+                    <Button x:Name="ResetWindowPositionsButton" Canvas.Left="45" Canvas.Top="120" Width="180" Height="22" Click="ResetWindowPositions_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="10" FontWeight="Bold" Cursor="Hand" Content="RESET WINDOW POSITIONS" />
+                    <local:InfoBubble Canvas.Left="228" Canvas.Top="124" Message="Recenters planner windows if one is off-screen." TipType="Tutorial" />
+                    <Grid Canvas.Left="42" Canvas.Top="250" Width="186" Height="27">
+                        <Image Source="{DynamicResource BracketTopLeftArt}" Width="14" Height="18" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                        <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                        <Image Source="{DynamicResource BracketBottomLeftArt}" Width="14" Height="18" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+                        <Image Source="{DynamicResource BracketBottomRightArt}" Width="12" Height="18" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+                        <TextBlock Text="CALCULATOR BEHAVIOR" Foreground="#5A4325" FontSize="10" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center" />
                     </Grid>
-                    <Button x:Name="TradeHistoryButton" Canvas.Left="65" Canvas.Top="392" Width="140" Height="22" Click="TradeHistoryButton_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="8" FontWeight="Bold" Cursor="Hand" Content="TRADE HISTORY" ToolTipService.ShowDuration="20000" ToolTip="Log of every load sold with the Sell button, with running totals of raw Gold, Ducats and converted total Gold." />
-                    <Button x:Name="ResetWindowPositionsButton" Canvas.Left="65" Canvas.Top="422" Width="140" Height="22" Click="ResetWindowPositions_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="8" FontWeight="Bold" Cursor="Hand" Content="RESET WINDOW POSITIONS" ToolTipService.ShowDuration="20000" ToolTip="Failsafe for a window stuck off screen: centers the planner on the main screen, moves Settings and any open helper windows back with it, and returns the route map overlay to its default size in the middle of the main screen." />
                 </Canvas>
             </Popup>
 
@@ -722,8 +750,7 @@
                 </Button.Template>
             </Button>
             <TextBlock x:Name="PostRatingText" Canvas.Left="83" Canvas.Top="183" Width="112" Height="18" Text="My Merchant Rating Level" Foreground="#4C4028" FontSize="9" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-            <TextBox x:Name="RatingInput" Canvas.Left="198" Canvas.Top="181" Width="35" Height="18" Text="1" Style="{StaticResource Entry}" FontSize="9" Padding="3,0" TextChanged="RatingInput_TextChanged" ToolTip="Enter your Merchant Rating for the selected outpost." />
-
+            <TextBox x:Name="RatingInput" Canvas.Left="198" Canvas.Top="181" Width="35" Height="18" Text="1" Style="{StaticResource Entry}" FontSize="9" Padding="3,0" TextChanged="RatingInput_TextChanged" />
             <ListBox x:Name="ProductList" Canvas.Left="23" Canvas.Top="215" Width="287" Height="300" ItemTemplate="{StaticResource ProductTemplate}" SelectionChanged="ProductList_SelectionChanged" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Visible" VirtualizingPanel.ScrollUnit="Pixel" HorizontalContentAlignment="Left">
                 <ListBox.Resources>
                     <Style x:Key="ProductScrollButton" TargetType="RepeatButton">
@@ -885,15 +912,18 @@
                             <local:OutlinedTextBlock x:Name="SelectedProductName" Grid.Row="0"                             Text="Select a good" Foreground="#16130F" OutlineThickness="0" FontSize="12" FontWeight="Bold" TextAlignment="Center" />
                                                         <local:OutlinedTextBlock x:Name="SelectedProductMeta" Grid.Row="1" Text="Item details" Foreground="#3B2E1B" OutlineThickness="0" FontSize="10" FontWeight="Bold" TextAlignment="Center" />
                         </Grid>
-                        <local:OutlinedTextBlock x:Name="TradeMarketPriceCaption" Grid.Row="0" Text="Current market price of each town" Foreground="#2D2B27" OutlineThickness="0" FontSize="10.5" Margin="10,27,48,0" Height="14" VerticalAlignment="Top" />
-                        <Button x:Name="ReadPriceListButton" Grid.Row="0" Width="43" Height="14" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,27,4,0" Visibility="Collapsed" Click="ReadPriceListButton_Click" Content="SCAN" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="7" FontWeight="Bold" ToolTip="Scan the in-game price list" />
+                        <local:OutlinedTextBlock x:Name="TradeMarketPriceCaption" Grid.Row="0" Text="Town sale prices" Foreground="#2D2B27" OutlineThickness="0" FontSize="10.5" Margin="38,27,63,0" Height="14" VerticalAlignment="Top" />
+                        <local:InfoBubble Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,27,51,0"
+                                          Message="Enter town sale prices, or SCAN prices and Inventory stock from your selected area. Columns show town, price, profit/loss, and route time. Hover profit or time for details; -- means unknown. Smuggler has no automatic quote."
+                                          TipType="Information" />
+                        <Button x:Name="ReadPriceListButton" Grid.Row="0" Width="43" Height="14" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,27,4,0" Visibility="Collapsed" Click="ReadPriceListButton_Click" Content="SCAN" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="7" FontWeight="Bold" />
                         <Grid x:Name="TradeQuoteRowsGrid" Grid.Row="1">
                             <Grid.RowDefinitions><RowDefinition Height="14"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                             <Grid Grid.Row="0" Width="202" HorizontalAlignment="Center">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="66"/><ColumnDefinition Width="42"/><ColumnDefinition Width="64"/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="TOWN" Foreground="#5C4B32" FontSize="7" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1" Text="PRICE" Foreground="#5C4B32" FontSize="7" TextAlignment="Right" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Grid.ColumnSpan="2" Text="Time(minutes)" Foreground="#5C4B32" FontSize="6" TextAlignment="Right" VerticalAlignment="Center" ToolTip="Estimated travel minutes; -- = unknown" />
+                                <TextBlock Grid.Column="2" Grid.ColumnSpan="2" Text="Time(minutes)" Foreground="#5C4B32" FontSize="6" TextAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                             <ScrollViewer Grid.Row="1" Background="Transparent" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
                                 <ItemsControl x:Name="QuotesList" Width="202" HorizontalAlignment="Center" Margin="0" ItemTemplate="{StaticResource QuoteTemplate}" />
@@ -901,13 +931,16 @@
                         </Grid>
                         <Grid x:Name="GroupQuoteRowsGrid" Grid.Row="1" Visibility="Collapsed">
                             <Grid.RowDefinitions><RowDefinition Height="18"/><RowDefinition Height="14"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                            <local:OutlinedTextBlock x:Name="MarketPriceCaption" Grid.Row="0" Text="Current market price of each town" Foreground="#2D2B27" OutlineThickness="0" FontSize="10.5" Margin="10,0,48,0" Height="14" VerticalAlignment="Center" />
-                            <Button x:Name="GroupReadPriceListButton" Grid.Row="0" Width="43" Height="14" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0" Visibility="Collapsed" Click="ReadPriceListButton_Click" Content="SCAN" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="7" FontWeight="Bold" ToolTip="Scan the in-game price list" />
+                            <local:OutlinedTextBlock x:Name="MarketPriceCaption" Grid.Row="0" Text="Town sale prices" Foreground="#2D2B27" OutlineThickness="0" FontSize="10.5" Margin="38,0,63,0" Height="14" VerticalAlignment="Center" />
+                            <local:InfoBubble Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,51,0"
+                                              Message="Enter town sale prices, or SCAN prices and Inventory stock from your selected area. Columns show town, price, profit/loss, and route time. Hover profit or time for details; -- means unknown. Smuggler has no automatic quote."
+                                              TipType="Information" />
+                            <Button x:Name="GroupReadPriceListButton" Grid.Row="0" Width="43" Height="14" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0" Visibility="Collapsed" Click="ReadPriceListButton_Click" Content="SCAN" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="7" FontWeight="Bold" />
                             <Grid Grid.Row="1" Width="202" HorizontalAlignment="Center">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="66"/><ColumnDefinition Width="42"/><ColumnDefinition Width="64"/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="TOWN" Foreground="#5C4B32" FontSize="7" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1" Text="PRICE" Foreground="#5C4B32" FontSize="7" TextAlignment="Right" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Grid.ColumnSpan="2" Text="Time(minutes)" Foreground="#5C4B32" FontSize="6" TextAlignment="Right" VerticalAlignment="Center" ToolTip="Estimated travel minutes; -- = unknown" />
+                                <TextBlock Grid.Column="2" Grid.ColumnSpan="2" Text="Time(minutes)" Foreground="#5C4B32" FontSize="6" TextAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                             <ScrollViewer Grid.Row="2" Background="Transparent" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
                                 <ItemsControl x:Name="GroupQuotesList" Width="202" HorizontalAlignment="Center" Margin="0" ItemTemplate="{StaticResource QuoteTemplate}" />
@@ -923,7 +956,7 @@
                             <Button x:Name="AutoSelectedStartModeButton" Content="SELECTED START" Click="AutoSelectedStartModeButton_Click" Background="#A9823C" Foreground="#271D10" BorderBrush="#785B32" BorderThickness="1" FontSize="7" FontWeight="Bold" ToolTip="Calculate routes from the chosen start town" />
                             <Button x:Name="AutoBestOverallModeButton" Grid.Column="1" Content="BEST OVERALL" Click="AutoBestOverallModeButton_Click" Background="#625946" Foreground="#C4BDAF" BorderBrush="#785B32" BorderThickness="1" FontSize="7" ToolTip="Search cached destination prices across all source towns" />
                         </Grid>
-                        <ScrollViewer Grid.Row="1" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="Transparent">
+                        <ScrollViewer x:Name="AutoResultsScrollViewer" Grid.Row="1" Margin="0,30,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="Transparent">
                             <ScrollViewer.Resources>
                                 <Style x:Key="AutoScrollButton" TargetType="RepeatButton">
                                     <Setter Property="Background" Value="#D6B65E" />
@@ -978,8 +1011,13 @@
                                 </Style>
                             </ScrollViewer.Resources>
                             <StackPanel>
-                                <TextBlock Text="TOP 3 · TOTAL PROFIT" Foreground="#342C20" FontSize="7" FontWeight="Bold" Margin="0,1,0,0" />
-                                <Grid Width="202" Height="68">
+                                <Grid Width="202" Height="13">
+                                    <TextBlock x:Name="AutoProfitResultsHeader" Text="TOP 3 · TOTAL PROFIT" Foreground="#342C20" FontSize="7" FontWeight="Bold" Margin="0,1,16,0" />
+                                    <local:InfoBubble HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                      Message="Results show destination, estimated time, profit per minute, and total profit. Hover a result for its cost, sale, and reward breakdown. Search from your selected start or across all cached source towns."
+                                                      TipType="Information" />
+                                </Grid>
+                                <Grid x:Name="AutoProfitResultsGrid" Width="202" Height="68">
                                 <ListBox x:Name="AutoProfitResultsList" Height="68" ItemTemplate="{StaticResource AutoPlanTemplate}" SelectionChanged="AutoPlanResult_SelectionChanged" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                     <ListBox.ItemContainerStyle>
                                         <Style TargetType="ListBoxItem">
@@ -990,18 +1028,20 @@
                                 </ListBox>
                                     <ItemsControl x:Name="AutoProfitPlaceholder" Height="60" VerticalAlignment="Top" ItemTemplate="{StaticResource AutoPlaceholderTemplate}" IsHitTestVisible="False" />
                                 </Grid>
-                                <TextBlock Text="TOP 3 · PROFIT / MIN" Foreground="#342C20" FontSize="7" FontWeight="Bold" Margin="0" />
-                                <Grid Width="202" Height="68">
-                                <ListBox x:Name="AutoTimeResultsList" Height="68" ItemTemplate="{StaticResource AutoPlanTemplate}" SelectionChanged="AutoPlanResult_SelectionChanged" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                    <ListBox.ItemContainerStyle>
-                                        <Style TargetType="ListBoxItem">
-                                            <Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="HorizontalContentAlignment" Value="Left" />
-                                            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="ItemBorder" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1"><ContentPresenter /></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="#D8C79F"/><Setter TargetName="ItemBorder" Property="BorderBrush" Value="#987642"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
-                                        </Style>
-                                    </ListBox.ItemContainerStyle>
-                                </ListBox>
-                                    <ItemsControl x:Name="AutoTimePlaceholder" Height="60" VerticalAlignment="Top" ItemTemplate="{StaticResource AutoPlaceholderTemplate}" IsHitTestVisible="False" />
-                                </Grid>
+                                <StackPanel x:Name="AutoTimeResultsPanel">
+                                    <TextBlock Text="TOP 3 · PROFIT / MIN" Foreground="#342C20" FontSize="7" FontWeight="Bold" Margin="0" />
+                                    <Grid Width="202" Height="68">
+                                    <ListBox x:Name="AutoTimeResultsList" Height="68" ItemTemplate="{StaticResource AutoPlanTemplate}" SelectionChanged="AutoPlanResult_SelectionChanged" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                        <ListBox.ItemContainerStyle>
+                                            <Style TargetType="ListBoxItem">
+                                                <Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="HorizontalContentAlignment" Value="Left" />
+                                                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="ItemBorder" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1"><ContentPresenter /></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="#D8C79F"/><Setter TargetName="ItemBorder" Property="BorderBrush" Value="#987642"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+                                            </Style>
+                                        </ListBox.ItemContainerStyle>
+                                    </ListBox>
+                                        <ItemsControl x:Name="AutoTimePlaceholder" Height="60" VerticalAlignment="Top" ItemTemplate="{StaticResource AutoPlaceholderTemplate}" IsHitTestVisible="False" />
+                                    </Grid>
+                                </StackPanel>
                                 <TextBlock Text="CUSTOM SELECTION" Foreground="#342C20" FontSize="7" FontWeight="Bold" Margin="0" />
                                 <Grid Width="202" Height="20">
                                     <ItemsControl x:Name="AutoCustomPlaceholder" Height="20" ItemTemplate="{StaticResource AutoPlaceholderTemplate}" IsHitTestVisible="False" />
@@ -1019,19 +1059,22 @@
                                 <Grid.RenderTransform>
                                     <TranslateTransform Y="16.5" />
                                 </Grid.RenderTransform>
-                                <TextBlock Text="ESTIMATED LOAD RETURN BY DESTINATION" Foreground="#000000" FontSize="10" FontWeight="Bold" TextAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Text="LOAD RETURN BY DESTINATION" Foreground="#000000" FontSize="10" FontWeight="Bold" TextAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Grid>
-                            <Grid Grid.Row="1" RenderTransformOrigin="0.5,0">
+                            <local:InfoBubble Grid.RowSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,5,0"
+                                              Message="Rows show destination, estimated minutes, profit per minute, and total profit for this load. Hover a row for the calculation breakdown."
+                                              TipType="Information" />
+                            <Grid x:Name="LoadProfitResultsGrid" Grid.Row="1" RenderTransformOrigin="0.5,0">
                                 <Grid.RenderTransform>
                                     <TranslateTransform Y="4.5" />
                                 </Grid.RenderTransform>
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top">
-                                    <Grid Width="220" Height="15">
+                                    <Grid x:Name="LoadProfitColumnHeaders" Width="220" Height="17">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="32"/><ColumnDefinition Width="54"/><ColumnDefinition Width="64"/></Grid.ColumnDefinitions>
-                                        <TextBlock Text="TOWN" Foreground="#5C4B32" FontSize="7" FontWeight="Bold" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="MIN" Foreground="#5C4B32" FontSize="7" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center" ToolTip="Estimated travel time in minutes" />
-                                        <TextBlock Grid.Column="2" Text="P/M" Foreground="#5C4B32" FontSize="7" FontWeight="Bold" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,11,0" ToolTip="Profit per minute: total Gold for Barter, and for Trade/Group when Settings shows trade profit in Gold; otherwise net Ducat profit" />
-                                        <TextBlock Grid.Column="3" Text="TOTAL" Foreground="#5C4B32" FontSize="7" FontWeight="Bold" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" ToolTip="Total Gold = Gold earned + Ducats earned × your Gold per Ducat rate. Barter loads also subtract the materials' Gold value. Includes Commerce Mastery and the active Letter of Guarantee chosen for this trade type. Hover a row for its full breakdown." />
+                                        <TextBlock Text="TOWN" Foreground="#5C4B32" FontSize="7" FontWeight="Bold" VerticalAlignment="Center" Margin="38,0,0,0" />
+                                        <TextBlock Grid.Column="1" Text="MIN" Foreground="#5C4B32" FontSize="7" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="2" Text="P/M" Foreground="#5C4B32" FontSize="7" FontWeight="Bold" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,11,0" />
+                                        <TextBlock Grid.Column="3" Text="TOTAL" Foreground="#5C4B32" FontSize="7" FontWeight="Bold" TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" />
                                     </Grid>
                                     <ListBox x:Name="DestinationTotalsList" Width="220" Height="15" HorizontalAlignment="Center" ItemTemplate="{StaticResource DestinationTotalTemplate}" SelectedValuePath="PostId" SelectionChanged="DestinationTotalsList_SelectionChanged" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.CanContentScroll="False" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                     <ListBox.ItemContainerStyle>
@@ -1079,7 +1122,7 @@
                                 <StackPanel Grid.Column="2">
                                     <TextBlock x:Name="BuyPriceCaption" Text="BUY PRICE" Foreground="#F4ECD9" FontSize="9" FontWeight="Bold" />
                                     <Grid>
-                                        <TextBox x:Name="BuyPriceInput" Text="" Style="{StaticResource Entry}" Height="19" FontSize="9" Padding="4,1" TextChanged="BuyPriceInput_TextChanged" ToolTip="Buy price at this town" />
+                                        <TextBox x:Name="BuyPriceInput" Text="" Style="{StaticResource Entry}" Height="19" FontSize="9" Padding="4,1" TextChanged="BuyPriceInput_TextChanged" />
                                         <Image x:Name="BuyPriceGoldIcon" Source="{DynamicResource DucatCurrencyArt}" Width="11" Height="11" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,5,0" IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
                                     </Grid>
                                 </StackPanel>
@@ -1094,17 +1137,21 @@
                             <ComboBox x:Name="ManualLetterPicker" Height="18" Margin="0,3,0,0" Style="{StaticResource GameCombo}" FontSize="8" SelectionChanged="ActiveLetterPicker_SelectionChanged" />
                         </StackPanel>
                         <Grid x:Name="AutoPurchaseInputs" Visibility="Collapsed">
-                            <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="22"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="22"/><RowDefinition Height="22"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                             <Grid Grid.Row="0">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="45"/></Grid.ColumnDefinitions>
-                                <ComboBox x:Name="AutoSourcePicker" Grid.Column="0" Height="21" SelectedValuePath="Id" ItemTemplate="{StaticResource PickerNameTemplate}" SelectionChanged="AutoSourcePicker_SelectionChanged" Style="{StaticResource GameCombo}" FontSize="8" ToolTip="Choose the starting trading post" />
+                                <ComboBox x:Name="AutoSourcePicker" Grid.Column="0" Height="21" SelectedValuePath="Id" ItemTemplate="{StaticResource PickerNameTemplate}" SelectionChanged="AutoSourcePicker_SelectionChanged" Style="{StaticResource GameCombo}" FontSize="8" />
                                 <TextBlock x:Name="AutoAllSourcesLabel" Grid.Column="0" Text="ALL SOURCES" Foreground="#F4ECD9" FontSize="8" FontWeight="Bold" VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" />
-                                <Button x:Name="AutoCalculateButton" Grid.Column="1" Content="CALC" Margin="2,0,0,0" Click="AutoCalculate_Click" Background="#A9823C" Foreground="#271D10" BorderBrush="#785B32" BorderThickness="1" FontSize="8" FontWeight="Bold" ToolTip="Calculate the top routes from this start" />
+                                <Button x:Name="AutoCalculateButton" Grid.Column="1" Content="CALC" Margin="2,0,0,0" Click="AutoCalculate_Click" Background="#A9823C" Foreground="#271D10" BorderBrush="#785B32" BorderThickness="1" FontSize="8" FontWeight="Bold" />
                             </Grid>
-                            <Button x:Name="ExpandedAutoRoutesButton" Grid.Row="1" Click="ExpandedAutoRoutesButton_Click" Background="#66543A" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" ToolTip="Open all calculated routes with detailed metrics">
+                            <Grid Grid.Row="1">
+                                <ComboBox x:Name="AutoLetterOverridePicker" Height="18" Margin="0,0,18,0" Style="{StaticResource GameCombo}" FontSize="8" SelectionChanged="AutoLetterOverridePicker_SelectionChanged" AutomationProperties.Name="Auto letter override" />
+                                <local:InfoBubble HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,0,0" Message="Auto can choose a valued letter, never use one, or force one at 0 Gold. Manual and Load Profit use Inventory values." TipType="Information" />
+                            </Grid>
+                            <Button x:Name="ExpandedAutoRoutesButton" Grid.Row="2" Click="ExpandedAutoRoutesButton_Click" Background="#66543A" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1">
                                 <TextBlock x:Name="ExpandedAutoRoutesButtonText" Text="VIEW ALL ROUTES" FontSize="7" FontWeight="Bold" Opacity="0.4" />
                             </Button>
-                            <TextBlock x:Name="AutoStatusText" Grid.Row="2" Text="Choose a start town, then calculate." Foreground="#F4ECD9" FontSize="7" TextWrapping="Wrap" VerticalAlignment="Top" Margin="1,2,0,0" ToolTip="Purchase adds the plan to your cargo list" />
+                            <TextBlock x:Name="AutoStatusText" Grid.Row="3" Text="Choose a start town, then calculate." Foreground="#F4ECD9" FontSize="7" TextWrapping="Wrap" VerticalAlignment="Top" Margin="1,2,0,0" />
                         </Grid>
                         <StackPanel x:Name="LoadProfitInputs" Visibility="Collapsed">
                             <TextBlock Text="LETTER OF GUARANTEE" Foreground="#F4ECD9" FontSize="9" FontWeight="Bold" />
@@ -1112,7 +1159,7 @@
                             <TextBlock x:Name="LoadProfitLetterWarning" Foreground="#F2C77A" FontSize="7" TextWrapping="Wrap" Margin="1,2,0,0" Visibility="Collapsed" />
                             <Grid Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="23"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Button x:Name="RouteMapButton" Width="23" Height="21" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand" IsEnabled="False" Click="RouteMapButton_Click" ToolTip="Open the route map overlay for the held goods' route" AutomationProperties.Name="Open route map overlay">
+                                <Button x:Name="RouteMapButton" Width="23" Height="21" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand" IsEnabled="False" Click="RouteMapButton_Click" AutomationProperties.Name="Open route map overlay">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
                                             <Border Background="Transparent" Padding="2">
@@ -1126,7 +1173,7 @@
                                         </ControlTemplate>
                                     </Button.Template>
                                 </Button>
-                                <ComboBox x:Name="RouteMapDestinationPicker" Grid.Column="1" Height="19" Margin="2,0,0,0" SelectedValuePath="Id" ItemTemplate="{StaticResource PickerNameTemplate}" Style="{StaticResource GameCombo}" FontSize="8" Visibility="Collapsed" SelectionChanged="RouteMapDestinationPicker_SelectionChanged" ToolTip="Destination for the route map. Lists towns that buy every held good." />
+                                <ComboBox x:Name="RouteMapDestinationPicker" Grid.Column="1" Height="19" Margin="2,0,0,0" SelectedValuePath="Id" ItemTemplate="{StaticResource PickerNameTemplate}" Style="{StaticResource GameCombo}" FontSize="8" Visibility="Collapsed" SelectionChanged="RouteMapDestinationPicker_SelectionChanged" />
                                 <TextBlock x:Name="RouteMapCaption" Grid.Column="1" Text="ROUTE MAP" Foreground="#F4ECD9" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="3,0,0,0" />
                             </Grid>
                             <TextBlock x:Name="RouteMapRouteText" Foreground="#F4ECD9" FontSize="7" TextWrapping="Wrap" Margin="1,2,0,0" Text="Load goods to map their route." />
@@ -1135,11 +1182,53 @@
                 </Grid>
             </Border>
 
-            <Button x:Name="PurchaseActionButton" Canvas.Left="469" Canvas.Top="419" Width="74" Height="98" Style="{StaticResource CommerceActionButton}" Click="AddToLoad_Click" Content="Purchase" ToolTip="Add selected goods to the transport" />
+            <Button x:Name="CommunityRefreshButton" Canvas.Left="323" Canvas.Top="207" Width="15" Height="15" Padding="0" Background="Transparent" BorderThickness="0" IsEnabled="False" Click="CommunityRefresh_Click" AutomationProperties.Name="Refresh shared scanned prices">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent">
+                            <Image x:Name="CommunityRefreshIcon" Source="{DynamicResource RefreshIconArt}" Stretch="Uniform" Opacity="0.85" RenderOptions.BitmapScalingMode="HighQuality" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CommunityRefreshIcon" Property="Opacity" Value="1" /></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CommunityRefreshIcon" Property="Opacity" Value="1" /></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="CommunityRefreshIcon" Property="Opacity" Value="0.25" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+            <local:InfoBubble x:Name="CommunityRefreshInfo" Canvas.Left="340" Canvas.Top="207" TipType="Information" Message="Receives scanned prices. Enabled when scanner mode and Scanned price sharing are turned on in Settings. Refresh at most once per minute." />
+
+            <Button x:Name="PurchaseActionButton" Canvas.Left="469" Canvas.Top="419" Width="74" Height="98" Style="{StaticResource CommerceActionButton}" Click="AddToLoad_Click" Content="Purchase" />
             <Button x:Name="SellActionButton" Canvas.Left="469" Canvas.Top="419" Width="74" Height="98" Style="{StaticResource CommerceActionButton}" Click="SellLoad_Click" Content="Sell" Visibility="Collapsed" />
-            <Border x:Name="StatusPanel" Canvas.Left="172.5" Canvas.Top="518" Width="480" Height="20" Padding="4,2" Background="#D8C69F" BorderBrush="#795E2D" BorderThickness="1" Visibility="Collapsed" IsHitTestVisible="False">
-                <TextBlock x:Name="StatusText" Foreground="#3A2C19" FontSize="9" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-            </Border>
+            <StackPanel x:Name="StatusPanel" Canvas.Left="112.5" Canvas.Bottom="4" Width="600" Panel.ZIndex="100" Visibility="Collapsed">
+                <ScrollViewer x:Name="StatusErrorScroll" MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl x:Name="StatusNotifications">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="#795E2D" BorderThickness="1" Padding="6,4" Margin="0,0,0,2" MouseLeftButtonUp="DismissStatusNotification_Click">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#C5AF7F" />
+                                            <Setter Property="Cursor" Value="Hand" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsError}" Value="True">
+                                                    <Setter Property="Background" Value="#DAB89E" />
+                                                    <Setter Property="Cursor" Value="Arrow" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="22" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Message}" Foreground="#3A2C19" FontSize="10" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1" Content="X" Width="18" Height="18" FontSize="10" Padding="0" Margin="4,0,0,0" VerticalAlignment="Top" Click="DismissStatusError_Click" AutomationProperties.Name="Dismiss error" Visibility="{Binding IsError, Converter={StaticResource BooleanToVisibility}}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </StackPanel>
 
             <Image x:Name="GoodsToCenterArrow" Canvas.Left="302" Canvas.Top="334" Width="20" Height="48" Stretch="Fill" IsHitTestVisible="False" Visibility="Collapsed" />
             <Image x:Name="TransportToCenterArrow" Canvas.Left="542" Canvas.Top="334" Width="20" Height="48" Stretch="Fill" IsHitTestVisible="False" Visibility="Collapsed" />
@@ -1161,7 +1250,7 @@
                     <Style TargetType="ScrollBar">
                         <Setter Property="Width" Value="8" />
                         <Setter Property="MinWidth" Value="8" />
-                        <Setter Property="Background" Value="#D0BC91" />
+                        <Setter Property="Background" Value="#74623F" />
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="ScrollBar">
@@ -1171,7 +1260,13 @@
                                                 <Thumb>
                                                     <Thumb.Template>
                                                         <ControlTemplate TargetType="Thumb">
-                                                            <Border Background="#7F5C32" BorderBrush="#624522" BorderThickness="1" CornerRadius="2" />
+                                                            <Border Background="#CEAD54" BorderBrush="#785C30" BorderThickness="1" CornerRadius="2">
+                                                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                                                                    <Rectangle Width="5" Height="1" Fill="#947940" Margin="0,1" />
+                                                                    <Rectangle Width="5" Height="1" Fill="#947940" Margin="0,1" />
+                                                                    <Rectangle Width="5" Height="1" Fill="#947940" Margin="0,1" />
+                                                                </StackPanel>
+                                                            </Border>
                                                         </ControlTemplate>
                                                     </Thumb.Template>
                                                 </Thumb>
@@ -1255,7 +1350,7 @@
                     </ControlTemplate>
                 </Button.Template>
             </Button>
-            <Button Canvas.Left="730" Canvas.Top="495" Width="62" Height="25" Click="ClearLoad_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="9" Cursor="Hand" Content="CLEAR LOAD" ToolTip="Clear the transport and restore source stock" />
+            <Button x:Name="ClearLoadButton" Canvas.Left="730" Canvas.Top="495" Width="62" Height="25" Click="ClearLoad_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="9" Cursor="Hand" Content="CLEAR LOAD" />
 
             <Button x:Name="TradePageTab" Canvas.Left="46" Canvas.Top="111" Width="70" Height="19" Click="ShowTradePage_Click" Content="TRADE" Background="#C59E4B" Foreground="#201B12" BorderBrush="#795E2D" BorderThickness="1" FontSize="7" FontWeight="Bold" />
             <Button x:Name="GroupPageTab" Canvas.Left="120" Canvas.Top="111" Width="70" Height="19" Click="ShowGroupPage_Click" Content="GROUP" Background="#5B4524" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="7" FontWeight="Bold" />

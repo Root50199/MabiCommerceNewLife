@@ -49,11 +49,9 @@ public partial class RouteMapToolbar : Window
         return image;
     }
 
-    public void ShowState(bool linesMode, bool showOthers, bool clickThrough, string title, int pageIndex, int pageCount)
+    public void ShowState(bool linesMode, bool clickThrough, string title, int pageIndex, int pageCount)
     {
         MapModeButton.IsChecked = !linesMode;
-        MyRouteButton.IsChecked = !showOthers;
-        AllRoutesButton.IsChecked = showOthers;
         ClickThroughButton.IsChecked = clickThrough;
         TitleText.Text = title;
         TitleText.ToolTip = string.IsNullOrEmpty(title) ? null : title;
@@ -69,11 +67,8 @@ public partial class RouteMapToolbar : Window
 
     private void MapModeButton_Click(object sender, RoutedEventArgs e) => _map.SetLinesMode(MapModeButton.IsChecked != true);
 
-    private void RoutesButton_Click(object sender, RoutedEventArgs e) =>
-        _map.SetOptions(AllRoutesButton.IsChecked == true, ClickThroughButton.IsChecked == true);
-
     private void ClickThroughButton_Click(object sender, RoutedEventArgs e) =>
-        _map.SetOptions(AllRoutesButton.IsChecked == true, ClickThroughButton.IsChecked == true);
+        _map.SetClickThrough(ClickThroughButton.IsChecked == true);
 
     private void PreviousButton_Click(object sender, RoutedEventArgs e) => _map.ShowPage(-1);
 

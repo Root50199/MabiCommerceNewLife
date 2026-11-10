@@ -26,6 +26,7 @@ public static class ScanDebugLog
         text.AppendLine($"Layout: {(result.IsSaleOnlyTable ? "barter (sale only)" : "trade (sale + profit)")}");
         text.AppendLine($"Product name OCR: {result.ProductNameText.ReplaceLineEndings(" ").Trim()}");
         text.AppendLine($"Metadata OCR: {result.ProductMetadataText.ReplaceLineEndings(" ").Trim()}");
+        text.AppendLine($"Stock: {result.Stock?.Count?.ToString(CultureInfo.InvariantCulture) ?? "missing"}; {result.Stock?.SourceText}");
         text.AppendLine($"Mean confidence: {result.MeanConfidence:N1}%");
         text.AppendLine($"Anchor: x={result.Anchor.X} y={result.Anchor.Y} error={result.Anchor.MeanPixelError:N2}");
         text.AppendLine();

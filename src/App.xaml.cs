@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace MabiCommerceNewLife;
 
@@ -29,6 +30,13 @@ public partial class App : Application
         base.OnStartup(e);
         try
         {
+            var icon = BitmapFrame.Create(new Uri(System.IO.Path.Combine(AppContext.BaseDirectory, "Data", "CommerceUI", "MainIcon.png")));
+            EventManager.RegisterClassHandler(typeof(Window), FrameworkElement.LoadedEvent,
+                new RoutedEventHandler((sender, _) =>
+                {
+                    if (sender is Window { Icon: null } window)
+                        window.SetCurrentValue(Window.IconProperty, icon);
+                }), handledEventsToo: true);
             new MainWindow().Show();
         }
         catch (Exception exception)

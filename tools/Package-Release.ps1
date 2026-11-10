@@ -4,15 +4,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
+. (Join-Path $PSScriptRoot 'Release-Version.ps1')
 Push-Location $root
 try {
     if (-not $Version) {
         [xml]$project = Get-Content .\MabiCommerceNewLife.csproj
         $Version = $project.Project.PropertyGroup[0].InformationalVersion
     }
-    if ($Version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$') {
-        throw 'Invalid package version.'
-    }
+    Assert-ReleaseVersion $Version
     $folder = Join-Path $root 'publish\release-package'
     if (Test-Path $folder) { Remove-Item -LiteralPath $folder -Recurse -Force }
     $app = Join-Path $folder 'MabiCommerceNewLife'

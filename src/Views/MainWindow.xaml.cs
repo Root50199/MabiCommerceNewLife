@@ -52,7 +52,14 @@ public partial class MainWindow : Window
     private readonly IReadOnlyDictionary<(int SourceId, int DestinationId), int> _regionalRoutePortalCounts =
         RegionalRouteEstimates.LoadPortalCounts(Path.Combine(AppContext.BaseDirectory, "Data", "regional-route-distances.json"));
     private readonly ObservableCollection<DestinationTotal> _destinationTotals = [];
-    private readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromSeconds(3) };
+    private readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
+    private readonly ObservableCollection<StatusNotification> _statusNotifications = [];
+    private sealed class StatusNotification(string message, bool isError)
+    {
+        public string Message { get; } = message;
+        public bool IsError { get; } = isError;
+        public long? ExpiresAt { get; } = isError ? null : Environment.TickCount64 + 10_000;
+    }
     private readonly DispatcherTimer _shipTimeRefreshTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _weeklyResetTimer = new();
     // Stock is not saved between launches, so every launch starts with refreshed (full) stock.
@@ -61,6 +68,7 @@ public partial class MainWindow : Window
     private readonly ShipScheduleEstimator _shipScheduleEstimator =
         ShipScheduleEstimator.Load(Path.Combine(AppContext.BaseDirectory, "Data", "ship-schedules.json"));
     private CancellationTokenSource? _autoCalculationCancellation;
+    private CancellationTokenSource? _scanCancellation;
     private AutoPlanRow? _selectedAutoPlan;
     private AutoExpandedRoutesWindow? _autoExpandedRoutesWindow;
     private readonly RouteMapData? _routeMapData = LoadRouteMapData();
@@ -87,11 +95,19 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        StatusNotifications.ItemsSource = _statusNotifications;
         var autoPlaceholderRows = Enumerable.Range(0, 3).ToArray();
         AutoProfitPlaceholder.ItemsSource = autoPlaceholderRows;
         AutoTimePlaceholder.ItemsSource = autoPlaceholderRows;
         AutoCustomPlaceholder.ItemsSource = autoPlaceholderRows.Take(1).ToArray();
         _plannerPreferences = LoadPlannerPreferences();
+        InitializeUpdates();
+        HelpBubblesCheckBox.IsChecked = _plannerPreferences.HelpBubblesEnabled;
+        CalculationBreakdownsCheckBox.IsChecked = _plannerPreferences.CalculationBreakdownsEnabled;
+        ItemStatusTooltipsCheckBox.IsChecked = _plannerPreferences.ItemStatusTooltipsEnabled;
+        TooltipSettings.Configure(_plannerPreferences.HelpBubblesEnabled,
+            _plannerPreferences.CalculationBreakdownsEnabled,
+            _plannerPreferences.ItemStatusTooltipsEnabled);
         ScreenReaderModeCheckBox.IsChecked = _plannerPreferences.ScreenReaderModeEnabled;
         DetailedRewardTooltipsCheckBox.IsChecked = _plannerPreferences.DetailedRewardTooltips;
 #if DEBUG
@@ -99,7 +115,8 @@ public partial class MainWindow : Window
 #else
         ScanDebugSettingsRow.Visibility = Visibility.Collapsed;
 #endif
-        TradeProfitInGoldCheckBox.IsChecked = _plannerPreferences.ShowTradeProfitInGold;
+        TradeProfitInGoldRadio.IsChecked = _plannerPreferences.ShowTradeProfitInGold;
+        TradeProfitInDucatsRadio.IsChecked = !_plannerPreferences.ShowTradeProfitInGold;
         ReadPriceListButton.Visibility = _plannerPreferences.ScreenReaderModeEnabled
             ? Visibility.Visible : Visibility.Collapsed;
         GroupReadPriceListButton.Visibility = Visibility.Collapsed;
@@ -120,6 +137,7 @@ public partial class MainWindow : Window
         if (_plannerPreferences.SaveLastScanRegion)
             _lastSuccessfulScanRegion = _plannerPreferences.LastScanRegion?.ToRectangle();
         Resources["ResetIconArt"] = LoadImage("Data/CommerceUI/ResetIcon.png");
+        Resources["RefreshIconArt"] = TintImage(LoadImage("Data/CommerceUI/Refresh.png"), 0x3B, 0x2A, 0x12);
         Resources["GoldCurrencyArt"] = LoadImage("Data/CommerceUI/Icon_Currency_Gold.png");
         Resources["DucatCurrencyArt"] = LoadImage("Data/CommerceUI/Icon_Currency_Ducat.png");
         Resources["TransportViewToggleArt"] = LoadImage("Data/CommerceUI/TransportViewToggle.png");
@@ -129,7 +147,8 @@ public partial class MainWindow : Window
             "./#NanumGothic");
         TradingPostFrameImage.Source = LoadImage("Data/CommerceUI/TradingPostFrameCustom.png");
         SettingsButtonImage.Source = LoadImage("Data/CommerceUI/Settings.png");
-        Resources["SettingsMenuBackgroundArt"] = BuildSettingsMenuBackground(11);
+        ManualButtonImage.Source = LoadImage("Data/CommerceUI/BookIcon.png");
+        Resources["SettingsMenuBackgroundArt"] = BuildSettingsMenuBackground(13);
         Resources["BracketTopLeftArt"] = LoadImage("Data/CommerceUI/BracketTopLeft.png");
         Resources["BracketTopRightArt"] = LoadImage("Data/CommerceUI/BracketTopRight.png");
         Resources["BracketBottomLeftArt"] = LoadImage("Data/CommerceUI/BracketBottomLeft.png");
@@ -317,20 +336,40 @@ public partial class MainWindow : Window
         _destinationTotals.Add(new DestinationTotal { PostId = SmugglerDestinationId, PostName = "Smuggler" });
         _statusTimer.Tick += (_, _) =>
         {
-            _statusTimer.Stop();
-            StatusPanel.Visibility = Visibility.Collapsed;
+            foreach (var notification in _statusNotifications.Where(item => item.ExpiresAt <= Environment.TickCount64).ToArray())
+                _statusNotifications.Remove(notification);
+            RefreshStatusPanelVisibility();
         };
         PostPicker.SelectedValue = 2;
         LoadMerchantRatingForSelectedPost();
         RefreshAutoSourceOptions();
         TransportPicker.SelectedValue = 1;
         LoadSavedWeeklyStock();
+        foreach (var (productId, stock) in _plannerPreferences.RetainedMarketStockByProductId)
+        {
+            var product = _products.SingleOrDefault(p => p.Id == productId);
+            if (product is null || stock < 0) continue;
+            if (product.IsWeeklyLimited) product.ScannedMarketStock = stock;
+            else
+            {
+                product.CurrentStock = stock;
+                product.StockInitialized = true;
+            }
+        }
         _initializing = false;
+        InitializeCommunitySharing();
         RefreshProducts();
         RefreshTransportLoad();
         _lastTimeRefreshMinute = CurrentMinute();
         _weeklyResetTimer.Tick += (_, _) => AutoRefreshGroupStockIfDue();
         Microsoft.Win32.SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
+        Closing += (_, _) =>
+        {
+            _helpClosing = true;
+            _scanCancellation?.Cancel();
+            ShutdownCommunitySharing();
+            StopTutorial();
+        };
         Closed += (_, _) =>
         {
             Microsoft.Win32.SystemEvents.PowerModeChanged -= SystemEvents_PowerModeChanged;
@@ -348,6 +387,7 @@ public partial class MainWindow : Window
             RefreshDestinationTotals();
         };
         _shipTimeRefreshTimer.Start();
+        ContentRendered += OfferFirstRunTutorial;
     }
 
     private long _lastTimeRefreshMinute;
@@ -368,9 +408,13 @@ public partial class MainWindow : Window
         public bool WilliamEnabled { get; set; }
         public decimal CurrentDucats { get; set; } = 10000m;
         public bool AlwaysOnTop { get; set; }
+        public bool CheckUpdatesOnOpen { get; set; } = true;
+        public bool TutorialPromptShown { get; set; }
         public bool ScreenReaderModeEnabled { get; set; }
         public bool AutoRefreshGroupStock { get; set; }
         public bool SaveLastScanRegion { get; set; }
+        public Dictionary<string, long> MarketLocalTimes { get; set; } = [];
+        public Dictionary<int, int> RetainedMarketStockByProductId { get; set; } = [];
         public bool FerryBufferEnabled { get; set; } = true;
         public int FerryBufferSeconds { get; set; } = ShipScheduleEstimator.DefaultMissedDepartureBufferSeconds;
         public int PortalLoadBufferSeconds { get; set; } = RegionalRouteEstimates.DefaultPortalLoadBufferSeconds;
@@ -394,19 +438,29 @@ public partial class MainWindow : Window
         public decimal GoldPerDucat { get; set; } = 1m;
         // Keyed by GoodsMode name (Trade, Group, Barter); a missing entry means no letter.
         public Dictionary<string, string> ActiveGuaranteeLetterByMode { get; set; } = [];
+        // Missing entry disables the Auto-only override; None explicitly forbids letters.
+        public Dictionary<string, string> AutoGuaranteeLetterOverrideByMode { get; set; } = [];
         // Missing letters are untracked; an entered count of 0 stops the letter from being applied.
         public Dictionary<string, int> GuaranteeLetterSupply { get; set; } = [];
         public Dictionary<string, int> GuaranteeLetterMarketValue { get; set; } = [];
+        public int? ExpansionCoverSupply { get; set; }
+        public int? ExpansionCoverMarketValueGold { get; set; } = CommerceExpansionCover.DefaultMarketValueGold;
         public Dictionary<string, int> CommerceModifierCounts { get; set; } = [];
         // Keyed by AccessoryEnchants.SlotKey, e.g. "1-prefix".
         public Dictionary<string, string> AccessoryEnchantIds { get; set; } = [];
         public Dictionary<string, int> AccessoryEnchantRolls { get; set; } = [];
         public bool DetailedRewardTooltips { get; set; }
+        public bool HelpBubblesEnabled { get; set; } = true;
+        public bool CalculationBreakdownsEnabled { get; set; } = true;
+        public bool ItemStatusTooltipsEnabled { get; set; } = true;
 #if DEBUG
         // Saves auto-accept-worthy scan captures and their OCR text to ScanDebugLog.FolderPath.
         public bool ScanDebugMode { get; set; }
 #endif
         public bool ShowTradeProfitInGold { get; set; }
+        public bool CommunitySharingEnabled { get; set; }
+        public string? CommunitySharingConsentEndpoint { get; set; }
+        public string? CommunitySharingConsentVersion { get; set; }
         // Remaining weekly stock for Group and Barter goods, keyed by GoodsEntry.Id.
         public Dictionary<int, int> WeeklyStockByProductId { get; set; } = [];
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -434,7 +488,7 @@ public partial class MainWindow : Window
     private void TradeMiddleTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         UpdateMiddleTabChevron();
-        if (TradeMiddleTabs.SelectedIndex != 2 || DestinationTotalsList.Items.Count == 0) return;
+        if (_tutorialHost is not null || TradeMiddleTabs.SelectedIndex != 2 || DestinationTotalsList.Items.Count == 0) return;
 
         if (_selectedSaleDestinationId is int selectedId &&
             DestinationTotalsList.Items.OfType<DestinationTotal>().Any(total => total.PostId == selectedId))
@@ -448,6 +502,11 @@ public partial class MainWindow : Window
     {
         if (_initializing) return;
         SyncPostPickerToAutoSource();
+        InvalidateAutoResults("Start changed. Calculate to refresh route suggestions.");
+    }
+
+    private void InvalidateAutoResults(string status)
+    {
         _autoCalculationCancellation?.Cancel();
         _autoExpandedRoutesWindow?.Close();
         AutoProfitResultsList.ItemsSource = null;
@@ -460,7 +519,7 @@ public partial class MainWindow : Window
         ClearAutoCustomSelection();
         _selectedAutoPlan = null;
         RefreshPurchaseButtonState();
-        AutoStatusText.Text = "Start changed. Calculate to refresh route suggestions.";
+        AutoStatusText.Text = status;
     }
 
     private void AutoSelectedStartModeButton_Click(object sender, RoutedEventArgs e) => SetAutoMode(bestOverall: false);
@@ -549,7 +608,7 @@ public partial class MainWindow : Window
 
         var transports = EligibleTransports(IsGroupMode)
             .Where(transport => transport.IsOwned)
-            .Select(transport => new PurchaseTransport(transport.Id, CapacitySlots(transport), CapacityWeight(transport),
+            .Select(transport => new PurchaseTransport(transport.Id, CapacitySlots(transport, false), CapacityWeight(transport, false),
                 IsAvailable: true, IsFlight: IsFlight(transport)))
             .ToList();
         if (transports.Count == 0)
@@ -583,11 +642,7 @@ public partial class MainWindow : Window
             foreach (var product in _products.Where(product => sourcePostIds.Contains(product.PostId) && MatchesMode(product)))
             {
                 var buyPrice = GetCurrentBuyPrice(product);
-                var stock = product.StockInitialized
-                    ? Math.Max(0, product.CurrentStock)
-                    : product.IsWeeklyLimited
-                        ? Math.Min(product.MaxStock, product.SourceCount)
-                        : product.MaxStock;
+                var stock = product.AvailableStock;
                 var sellPrices = new Dictionary<int, decimal>();
                 var estimatedDestinations = new HashSet<int>();
                 foreach (var quote in _quotesByProduct[product.Id])
@@ -627,7 +682,9 @@ public partial class MainWindow : Window
             requests.Add((source, new PurchaseRequest(source.Id, funds, goods, transports, destinations,
                 Objective: PurchaseObjective.NetProfit, GroupMode: IsGroupMode,
                 MaxSearchNodesPerPair: 20_000, MaxTotalSearchNodes: sourceSearchNodeBudget,
-                TransportMinutes: sourceTransportMinutes)));
+                TransportMinutes: sourceTransportMinutes,
+                ExpansionCoverMarketValueGold: ExpansionCoverMarketValueGold,
+                GoldPerProfitUnit: IsBarterMode ? 1m : 1m + GoldPerDucat)));
         }
         return requests;
         }
@@ -706,7 +763,7 @@ public partial class MainWindow : Window
                 UpdateExpandedAutoRoutesWindow(scopeName);
             if (AutoProfitResultsList.Items.Count == 0 && AutoTimeResultsList.Items.Count == 0)
                 AutoStatusText.Text = searchSets.Any(set => set.Result.Raw.Plans.Count > 0)
-                    ? "No route makes a profit, with or without a letter after its market value (check stock)."
+                    ? "No route makes a profit with the available letter choices (check stock and market values)."
                     : _bestOverallAutoMode
                     ? "No profitable routes from cached destination prices, stock, budget, and owned transports."
                     : "No profitable routes with these prices, stock, budget, and owned transports.";
@@ -717,7 +774,9 @@ public partial class MainWindow : Window
                 AutoStatusText.Text = incomplete
                     ? $"{resultScope} · best found within search budget · buy prices may be estimated"
                     : $"{resultScope} · ranked route suggestions · buy prices may be estimated";
-                AutoStatusText.Text += letterCandidates.Count > 1
+                AutoStatusText.Text += AutoLetterOverride is { } forced
+                    ? $" · override: {ShortLetterName(forced)} (0 G)"
+                    : letterCandidates.Count > 1
                     ? " · letter picked per route (hover a route; selecting it sets the letter)"
                     : " · set letter Market Gold values in Inventory to compare letters";
             }
@@ -731,6 +790,7 @@ public partial class MainWindow : Window
         {
             _updatingAutoPlanSelection = false;
             AutoStatusText.Text = $"Auto calculation failed: {exception.Message}";
+            SetStatus(AutoStatusText.Text, true);
         }
         finally
         {
@@ -793,7 +853,7 @@ public partial class MainWindow : Window
         plan.Lines.Any(line => _products.FirstOrDefault(product => product.Id == line.GoodId)?.IsBarter == true);
 
     // The value the Auto lists show and rank by: the reward model's Gold total for barter (and for trade when
-    // Settings > Trade profit in Gold is on), otherwise the full Ducats earned after Mastery, letter and extra bonuses.
+    // Settings > Profit display selects Converted Gold), otherwise full Ducats earned after Mastery, letter and extra bonuses.
     private decimal AutoProfitValue(PurchasePlan plan)
     {
         var reward = CalculatePlanReward(plan);
@@ -809,6 +869,15 @@ public partial class MainWindow : Window
 
     private bool _syncingLetterPickers;
 
+    private GuaranteeLetterKind? AutoLetterOverride =>
+        _plannerPreferences.AutoGuaranteeLetterOverrideByMode.TryGetValue(_goodsMode.ToString(), out var name)
+        && Enum.TryParse<GuaranteeLetterKind>(name, out var kind) && Enum.IsDefined(kind) ? kind : null;
+
+    private sealed record AutoLetterOption(GuaranteeLetterKind? Kind, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
     private void RefreshActiveLetterPickers()
     {
         var barter = IsBarterMode;
@@ -820,12 +889,17 @@ public partial class MainWindow : Window
         var loadProfitOptions = new[] { new LetterOption(GuaranteeLetterKind.None, "No letter") }
             .Concat(GuaranteeLetters.All.Select(letter => new LetterOption(letter.Kind, Label(letter) + LoadProfitLetterGainText(letter.Kind))))
             .ToList();
+        var autoOptions = new[] { new AutoLetterOption(null, "Letter Override - Disabled"), new AutoLetterOption(GuaranteeLetterKind.None, "No letter") }
+            .Concat(GuaranteeLetters.All.Select(letter => new AutoLetterOption(letter.Kind, Label(letter) + " · 0 G")))
+            .ToList();
         var tooltip = ActiveLetterTooltip(SelectedGuaranteeLetter);
         if (_selectedSaleDestinationId is int destinationId && _loadProfitRewardLines.ContainsKey(destinationId))
             tooltip += $"\n\nLoad Profit lists each letter's Gold gain or loss for the current load sold at {_posts.FirstOrDefault(post => post.Id == destinationId)?.Name ?? "the selected town"}, after its Market Gold value and Ducats on use.";
         _syncingLetterPickers = true;
         try
         {
+            AutoLetterOverridePicker.ItemsSource = autoOptions;
+            AutoLetterOverridePicker.SelectedItem = autoOptions.First(option => option.Kind == AutoLetterOverride);
             foreach (var picker in new[] { ManualLetterPicker, LoadProfitLetterPicker })
             {
                 var pickerOptions = picker == LoadProfitLetterPicker ? loadProfitOptions : options;
@@ -865,7 +939,7 @@ public partial class MainWindow : Window
     private string ActiveLetterTooltip(GuaranteeLetterKind kind)
     {
         var mode = _goodsMode switch { GoodsMode.Group => "group", GoodsMode.Barter => "barter", _ => "normal" };
-        var text = $"Active Letter of Guarantee for {mode} trade. Normal, group and barter each remember their own choice; it applies to Manual, Auto and Load Profit estimates.";
+        var text = $"Active Letter of Guarantee for {mode} trade. Normal, group and barter each remember their own choice; it applies to Manual and Load Profit estimates. Auto chooses per route unless its letter override is enabled.";
         if (GuaranteeLetters.Get(kind) is not { } letter) return text;
         text += $"\n{letter.Name}: +{(IsBarterMode ? letter.BarterPercent : letter.NormalPercent)}% of profit";
         text += letter.BoostsGold ? " as extra Ducats and Gold" : " as extra Ducats";
@@ -886,6 +960,16 @@ public partial class MainWindow : Window
         RefreshRewardDisplays();
     }
 
+    private void AutoLetterOverridePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_initializing || _syncingLetterPickers || sender is not ComboBox { SelectedItem: AutoLetterOption option }) return;
+        var key = _goodsMode.ToString();
+        if (option.Kind is { } kind) _plannerPreferences.AutoGuaranteeLetterOverrideByMode[key] = kind.ToString();
+        else _plannerPreferences.AutoGuaranteeLetterOverrideByMode.Remove(key);
+        SavePlannerPreferences();
+        InvalidateAutoResults("Letter override changed. Calculate to refresh route suggestions.");
+    }
+
     private void SetActiveGuaranteeLetter(GuaranteeLetterKind kind)
     {
         var key = _goodsMode.ToString();
@@ -895,12 +979,9 @@ public partial class MainWindow : Window
         RefreshActiveLetterPickers();
     }
 
-    // Auto considers no letter plus every letter tier with a Market Gold value, held or not (an unheld winner is
-    // flagged to buy); a blank market value keeps a letter out of automated selection.
+    // Disabled override compares market-priced letters; an enabled override supplies exactly one free choice.
     private List<GuaranteeLetterKind> AutoLetterCandidates() =>
-        [GuaranteeLetterKind.None, .. GuaranteeLetters.All
-            .Where(letter => GuaranteeLetters.IsAvailable(GetGuaranteeLetterMarketValue(letter.Kind)))
-            .Select(letter => letter.Kind)];
+        GuaranteeLetters.AutoCandidates(AutoLetterOverride, GetGuaranteeLetterMarketValue);
 
     // Each route gets its own most efficient letter: the candidate (no letter first, so ties keep no letter) giving that
     // load the highest Gold total after the letter's market cost and Ducats on use. A load's goods are valid with any
@@ -913,7 +994,7 @@ public partial class MainWindow : Window
         var assigned = new Dictionary<string, PurchasePlan?>();
         PurchasePlan? Assign(PurchasePlan plan, decimal searchK)
         {
-            var key = $"{GetPlanSourcePostId(plan)}|{plan.DestinationId}|{plan.TransportId}|" +
+            var key = $"{GetPlanSourcePostId(plan)}|{plan.DestinationId}|{plan.TransportId}|{plan.UsesExpansionCover}|" +
                 string.Join(",", plan.Lines.OrderBy(line => line.GoodId).Select(line => $"{line.GoodId}x{line.Quantity}"));
             if (assigned.TryGetValue(key, out var existing)) return existing;
             var bestLetter = letterCandidates[0];
@@ -948,8 +1029,15 @@ public partial class MainWindow : Window
             rawNodes += set.Result.Raw.VisitedNodes;
             perMinuteNodes += set.Result.PerMinute.VisitedNodes;
         }
-        return (new PurchaseSearchResult(raw, rawExhaustive, rawNodes),
-            new PurchaseSearchResult(perMinute, perMinuteExhaustive, perMinuteNodes));
+        var all = raw.Concat(perMinute).Distinct().ToList();
+        var normalGoldByRoute = all.Where(plan => !plan.UsesExpansionCover)
+            .GroupBy(plan => (GetPlanSourcePostId(plan), plan.DestinationId, plan.TransportId))
+            .ToDictionary(group => group.Key, group => group.Max(plan => CalculatePlanReward(plan).TotalGold));
+        bool WorthUsing(PurchasePlan plan) => !plan.UsesExpansionCover ||
+            normalGoldByRoute.TryGetValue((GetPlanSourcePostId(plan), plan.DestinationId, plan.TransportId), out var normalGold) &&
+            CommerceExpansionCover.IsWorthwhile(CalculatePlanReward(plan).TotalGold, normalGold);
+        return (new PurchaseSearchResult(raw.Where(WorthUsing).ToList(), rawExhaustive, rawNodes),
+            new PurchaseSearchResult(perMinute.Where(WorthUsing).ToList(), perMinuteExhaustive, perMinuteNodes));
     }
 
     private GuaranteeLetterKind? PlanLetter(PurchasePlan plan) =>
@@ -963,6 +1051,22 @@ public partial class MainWindow : Window
 
     public int? GetGuaranteeLetterMarketValue(GuaranteeLetterKind kind) =>
         _plannerPreferences.GuaranteeLetterMarketValue.TryGetValue(kind.ToString(), out var value) ? value : null;
+
+    public int? ExpansionCoverSupply => _plannerPreferences.ExpansionCoverSupply;
+    public int? ExpansionCoverMarketValueGold => _plannerPreferences.ExpansionCoverMarketValueGold;
+    private readonly Dictionary<GoodsMode, decimal> _activeExpansionCoverCosts = [];
+    private decimal ActiveExpansionCoverCost => _activeExpansionCoverCosts.GetValueOrDefault(_goodsMode);
+
+    public void SetExpansionCoverInventory(int? supply, int? marketValue)
+    {
+        if (supply is < 0 or > 9_999 || marketValue is < 0 or > 100_000_000)
+            throw new ArgumentOutOfRangeException(nameof(marketValue), "Cover inventory values are outside the supported range.");
+        _plannerPreferences.ExpansionCoverSupply = supply;
+        _plannerPreferences.ExpansionCoverMarketValueGold = marketValue;
+        SavePlannerPreferences();
+        InvalidateAutoResults("Commerce Expansion Cover inventory changed. Calculate to refresh route suggestions.");
+        RefreshRewardDisplays();
+    }
 
     public static readonly IReadOnlyList<string> CommerceMasteryRanks = ["F", "E", "D", "C", "B", "A", "9", "8", "7", "6", "5", "4", "3", "2", "1"];
 
@@ -994,6 +1098,7 @@ public partial class MainWindow : Window
         if (GetMerchantRatingForPost(postId) == rating && _plannerPreferences.MerchantRatingsByPostId.ContainsKey(postId)) return;
         _plannerPreferences.MerchantRatingsByPostId[postId] = rating;
         SavePlannerPreferences();
+        if (_communityApplicationsEnabled) RefreshCommunityValues();
         RefreshProducts();
     }
 
@@ -1009,7 +1114,7 @@ public partial class MainWindow : Window
         var totals = ModifierTotals(IsGroupMode);
         return new RewardModifiers(_plannerPreferences.CommerceMasteryRank, letter, GoldPerDucat,
             assumeHeld ? -1 : GetGuaranteeLetterSupply(letter) ?? -1, GetGuaranteeLetterMarketValue(letter) ?? 0,
-            totals.DucatPercent, totals.ProfitPercent, totals.MerchantRatingPercent);
+            totals.DucatPercent, totals.ProfitPercent, totals.MerchantRatingPercent, ActiveExpansionCoverCost);
     }
 
     public string RewardTooltip(CommerceRewardBreakdown reward) => _plannerPreferences.DetailedRewardTooltips
@@ -1049,6 +1154,7 @@ public partial class MainWindow : Window
         if (roll is > 0) _plannerPreferences.AccessoryEnchantRolls[slotKey] = roll.Value;
         else _plannerPreferences.AccessoryEnchantRolls.Remove(slotKey);
         SavePlannerPreferences();
+        RefreshRewardDisplays();
     }
 
     public int GetModifierCount(string id) =>
@@ -1065,9 +1171,11 @@ public partial class MainWindow : Window
     }
 
     // Partner and talent capacity bonuses are added to every transport.
-    private int CapacitySlots(CommerceTransport transport) => transport.Slots + ModifierTotals(false).ExtraSlots;
+    private int CapacitySlots(CommerceTransport transport, bool? usesCover = null) => transport.Slots + ModifierTotals(false).ExtraSlots +
+        ((usesCover ?? ActiveExpansionCoverCost > 0) ? CommerceExpansionCover.ExtraSlots : 0);
 
-    private int CapacityWeight(CommerceTransport transport) => transport.Weight + ModifierTotals(false).ExtraWeight;
+    private int CapacityWeight(CommerceTransport transport, bool? usesCover = null) => transport.Weight + ModifierTotals(false).ExtraWeight +
+        ((usesCover ?? ActiveExpansionCoverCost > 0) ? CommerceExpansionCover.ExtraWeight : 0);
 
     public void SetGuaranteeLetterInventory(GuaranteeLetterKind kind, int? supply, int? marketValue)
     {
@@ -1083,6 +1191,7 @@ public partial class MainWindow : Window
 
     private void RefreshRewardDisplays()
     {
+        if (_communityApplicationsEnabled) RefreshCommunityValues();
         RefreshDestinationTotals();
         RefreshAutoRewardText();
     }
@@ -1106,7 +1215,8 @@ public partial class MainWindow : Window
                 product is { IsBarter: false } ? PurchaseDiscountPercentFor(product.PostId) : 0m);
         }),
         isBarter: plan.Lines.Any(line => _products.FirstOrDefault(product => product.Id == line.GoodId)?.IsBarter == true),
-        RewardModifiersFor(letter ?? SelectedGuaranteeLetter, assumeHeld: true));
+        GuaranteeLetters.AutoModifiers(RewardModifiersFor(letter ?? SelectedGuaranteeLetter, assumeHeld: true), AutoLetterOverride)
+            with { ExpansionCoverCostGold = plan.ExpansionCoverCostGold });
     }
 
     // The per-unit sale price Auto, Load Profit and Sell share: the entered quote, else the default estimate.
@@ -1172,8 +1282,10 @@ public partial class MainWindow : Window
         var summary = string.Join(", ", cargo.Select(line => $"{line.Quantity:N0} × {line.Product.Name}"));
         var needs = cargo.SelectMany(line => line.Product.Recipe.Select(part =>
             new BarterRecipeNeed(line.Quantity, part.ItemId, part.Name, part.Quantity)));
-        return (summary, BarterShoppingList.Build(needs, itemId =>
-            _plannerPreferences.BarterMaterialsOnHandById.TryGetValue(itemId, out var have) ? have : 0));
+        return (summary, BarterShoppingList.Build(needs,
+            GetBarterMaterialOnHand,
+            GetSavedBarterMaterialValue,
+            itemId => !IsUntradableBarterMaterial(itemId)));
     }
 
     public void SetBarterMaterialOnHand(int itemId, int have)
@@ -1181,6 +1293,14 @@ public partial class MainWindow : Window
         if (have > 0) _plannerPreferences.BarterMaterialsOnHandById[itemId] = have;
         else _plannerPreferences.BarterMaterialsOnHandById.Remove(itemId);
         SavePlannerPreferences();
+    }
+
+    public void SetBarterMaterialValue(int itemId, decimal? value)
+    {
+        if (value is > 0) _plannerPreferences.BarterMaterialValuesById[itemId] = value.Value;
+        else _plannerPreferences.BarterMaterialValuesById.Remove(itemId);
+        SavePlannerPreferences();
+        RefreshBarterMaterialCostState(refreshShoppingList: false);
     }
 
     // Barter goods are bought with materials. CurrentBuyPrice holds the materials' Gold value directly (never divided
@@ -1223,6 +1343,11 @@ public partial class MainWindow : Window
         }
         _plannerPreferences.GoldPerDucat = goldPerDucat > 0 ? goldPerDucat : 1m;
         SavePlannerPreferences();
+        RefreshBarterMaterialCostState(refreshShoppingList: true);
+    }
+
+    private void RefreshBarterMaterialCostState(bool refreshShoppingList)
+    {
         RecalculateBarterCosts();
         foreach (var line in _barterCargoByProduct.Values)
             line.UnitBuyPrice = line.Product.CurrentBuyPrice;
@@ -1232,6 +1357,7 @@ public partial class MainWindow : Window
             RefreshQuotes();
         }
         RefreshDestinationTotals();
+        if (refreshShoppingList) _shoppingListWindow?.Refresh();
     }
 
     public decimal? BestBarterSalePrice(GoodsEntry product, out string destinationName)
@@ -1257,7 +1383,7 @@ public partial class MainWindow : Window
         return ranked
             .GroupBy(item => (SourcePostId: GetPlanSourcePostId(item.Plan), item.Plan.DestinationId))
             .Select(group => group.First())
-            .Take(3)
+            .Take(IsBarterMode && !perMinute ? 5 : 3)
             .Select(item =>
             {
                 var plan = item.Plan;
@@ -1311,11 +1437,14 @@ public partial class MainWindow : Window
             .ToList();
     }
 
-    private string AutoLetterTooltipLine(PurchasePlan plan) => GroupBonusTooltipLine(plan) + (PlanLetter(plan) is not { } letter
+    private string AutoLetterTooltipLine(PurchasePlan plan) => GroupBonusTooltipLine(plan) +
+        (plan.UsesExpansionCover ? Environment.NewLine + $"Commerce Expansion Cover: +1 slot, +100 weight; {plan.ExpansionCoverCostGold:N0} Gold per trip" +
+            (ExpansionCoverSupply == 0 ? " (none held: buy one)" : string.Empty) : string.Empty) + (PlanLetter(plan) is not { } letter
         ? string.Empty
         : Environment.NewLine + (letter == GuaranteeLetterKind.None
-            ? "Letter: none (no letter pays for itself on this route)"
-            : $"Letter: {ShortLetterName(letter)}" + (GetGuaranteeLetterSupply(letter) == 0 ? " (none held: buy one)" : string.Empty)));
+            ? AutoLetterOverride == GuaranteeLetterKind.None ? "Letter: none (forced by Auto override)" : "Letter: none (no letter pays for itself on this route)"
+            : $"Letter: {ShortLetterName(letter)}" + (AutoLetterOverride is not null ? " (Auto override: 0 G)" : string.Empty)
+                + (GetGuaranteeLetterSupply(letter) == 0 ? " (none held: buy one)" : string.Empty)));
 
     private string GroupBonusTooltipLine(PurchasePlan plan) =>
         plan.Lines.Any(line => _products.FirstOrDefault(product => product.Id == line.GoodId) is { } good && ModeOf(good) == GoodsMode.Group)
@@ -1565,9 +1694,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            var stock = product.StockInitialized
-                ? product.CurrentStock
-                : product.IsWeeklyLimited ? Math.Min(product.MaxStock, product.SourceCount) : product.MaxStock;
+            var stock = product.AvailableStock;
             if (line.Quantity > stock || line.Quantity <= 0)
             {
                 AutoStatusText.Text = $"{product.Name}'s available stock changed. Recalculate Auto.";
@@ -1583,7 +1710,12 @@ public partial class MainWindow : Window
 
         var totalWeight = linesToLoad.Sum(line => line.Product.Weight * line.Quantity);
         var totalSlots = linesToLoad.Sum(line => decimal.ToInt32(decimal.Ceiling((decimal)line.Quantity / line.Product.MaxBundle)));
-        if (totalWeight > CapacityWeight(transport) || totalSlots > CapacitySlots(transport) ||
+        if (selected.Plan.UsesExpansionCover && selected.Plan.ExpansionCoverCostGold != ExpansionCoverMarketValueGold)
+        {
+            AutoStatusText.Text = "Commerce Expansion Cover value changed. Recalculate Auto before loading.";
+            return;
+        }
+        if (totalWeight > CapacityWeight(transport, selected.Plan.UsesExpansionCover) || totalSlots > CapacitySlots(transport, selected.Plan.UsesExpansionCover) ||
             totalWeight != selected.Plan.UsedWeight || totalSlots != selected.Plan.UsedSlots)
         {
             AutoStatusText.Text = "Transport capacity changed. Recalculate Auto before loading.";
@@ -1597,7 +1729,9 @@ public partial class MainWindow : Window
 
         if (_goodsMode != selected.Mode)
             SetGoodsMode(selected.Mode);
-        var pickerSourceId = isBarterPlan ? planSourcePostIds[0] : selected.SourcePostId;
+        var pickerSourceId = isBarterPlan
+            ? GetBarterPairStartPostId(selected.SourcePostId, selected.Plan.DestinationId, transport.Id, DateTimeOffset.UtcNow)
+            : selected.SourcePostId;
         if (PostPicker.SelectedValue is not int currentSourceId || currentSourceId != pickerSourceId)
             PostPicker.SelectedValue = pickerSourceId;
         if (PostPicker.SelectedValue is not int selectedSourceId || selectedSourceId != pickerSourceId)
@@ -1620,6 +1754,10 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (selected.Plan.UsesExpansionCover)
+            _activeExpansionCoverCosts[selected.Mode] = selected.Plan.ExpansionCoverCostGold;
+        else
+            _activeExpansionCoverCosts.Remove(selected.Mode);
         foreach (var line in linesToLoad)
         {
             var product = line.Product;
@@ -1631,6 +1769,7 @@ public partial class MainWindow : Window
                 product.StockInitialized = true;
             }
             product.CurrentStock -= line.Quantity;
+            AdjustScannedMarketStock(product, -line.Quantity);
             ActiveCargo[product.Id] = new CargoLine
             {
                 Product = product,
@@ -1701,7 +1840,8 @@ public partial class MainWindow : Window
         BuyPriceInput.IsReadOnly = mode == GoodsMode.Barter;
         BuyPriceCaption.Text = mode == GoodsMode.Barter ? "MATERIAL COST" : "BUY PRICE";
         BuyPriceGoldIcon.Source = (System.Windows.Media.ImageSource)FindResource(mode == GoodsMode.Barter ? "GoldCurrencyArt" : "DucatCurrencyArt");
-        PostRatingText.Visibility = RatingInput.Visibility = mode == GoodsMode.Barter ? Visibility.Collapsed : Visibility.Visible;
+        PostRatingText.Visibility = RatingInput.Visibility =
+            mode == GoodsMode.Barter ? Visibility.Collapsed : Visibility.Visible;
         BuyPriceInput.ToolTip = mode == GoodsMode.Barter
             ? "Gold value of the exchange materials for one item (set in the barter materials panel)."
             : "Observed buy price at this post. Defaults to the client reference midpoint until entered or scanned.";
@@ -1709,6 +1849,11 @@ public partial class MainWindow : Window
         if (mode == GoodsMode.Barter) SetAutoMode(bestOverall: false);
         AutoBestOverallModeButton.Visibility = mode == GoodsMode.Barter ? Visibility.Collapsed : Visibility.Visible;
         Grid.SetColumnSpan(AutoSelectedStartModeButton, mode == GoodsMode.Barter ? 2 : 1);
+        AutoProfitResultsHeader.Text = mode == GoodsMode.Barter ? "TOP 5 · TOTAL PROFIT" : "TOP 3 · TOTAL PROFIT";
+        AutoProfitResultsGrid.Height = AutoProfitResultsList.Height = mode == GoodsMode.Barter ? 108 : 68;
+        AutoProfitPlaceholder.Height = mode == GoodsMode.Barter ? 100 : 60;
+        AutoProfitPlaceholder.ItemsSource = Enumerable.Range(0, mode == GoodsMode.Barter ? 5 : 3).ToArray();
+        AutoTimeResultsPanel.Visibility = mode == GoodsMode.Barter ? Visibility.Collapsed : Visibility.Visible;
         RefreshPostOptions();
         RefreshProducts();
         RefreshTransportOptions();
@@ -1863,21 +2008,38 @@ public partial class MainWindow : Window
         var pair = BarterPairRoutes.FirstOrDefault(route => route.RouteId == sourceId);
         if (pair.RouteId == 0) return GetManualQuoteMinutes(sourceId, destinationId, transportId, out source);
 
-        decimal? best = null;
-        source = "No route time for this trip.";
-        foreach (var (first, second) in new[] { (pair.FirstPostId, pair.SecondPostId), (pair.SecondPostId, pair.FirstPostId) })
+        var departureTime = DateTimeOffset.UtcNow;
+        var first = GetBarterPairStartPostId(sourceId, destinationId, transportId, departureTime);
+        var second = first == pair.FirstPostId ? pair.SecondPostId : pair.FirstPostId;
+        var firstLeg = GetManualQuoteMinutes(first, second, transportId, out _, departureTime);
+        var secondDepartureTime = firstLeg is > 0
+            ? departureTime.AddMinutes((double)firstLeg.Value)
+            : departureTime;
+        var secondLeg = GetManualQuoteMinutes(second, destinationId, transportId, out var legSource, secondDepartureTime);
+        if (firstLeg is not > 0 || secondLeg is not > 0)
         {
-            var firstLeg = GetManualQuoteMinutes(first, second, transportId, out _);
-            var secondLeg = GetManualQuoteMinutes(second, destinationId, transportId, out var legSource);
-            if (firstLeg is not > 0 || secondLeg is not > 0) continue;
-            var total = firstLeg.Value + secondLeg.Value;
-            if (best is not null && total >= best) continue;
-            best = total;
-            var firstName = _posts.FirstOrDefault(post => post.Id == first)?.Name ?? "first outpost";
-            var secondName = _posts.FirstOrDefault(post => post.Id == second)?.Name ?? "second outpost";
-            source = $"{firstName} → {secondName}: {firstLeg.Value:N1} min{Environment.NewLine}{secondName} → destination: {secondLeg.Value:N1} min{Environment.NewLine}{legSource}";
+            source = "No route time for this trip.";
+            return null;
         }
-        return best;
+
+        var firstName = _posts.FirstOrDefault(post => post.Id == first)?.Name ?? "first outpost";
+        var secondName = _posts.FirstOrDefault(post => post.Id == second)?.Name ?? "second outpost";
+        source = $"{firstName} → {secondName}: {firstLeg.Value:N1} min{Environment.NewLine}{secondName} → destination: {secondLeg.Value:N1} min{Environment.NewLine}{legSource}";
+        return firstLeg.Value + secondLeg.Value;
+    }
+
+    private int GetBarterPairStartPostId(int routeId, int destinationId, int transportId, DateTimeOffset departureTime)
+    {
+        var pair = BarterPairRoutes.FirstOrDefault(route => route.RouteId == routeId);
+        if (pair.RouteId == 0) return routeId;
+        int? fixedStartPostId = routeId == CalidaPeraRouteId ? PostIds.Pera : null;
+        return BarterRouteOrder.SelectStartPostId(
+            pair.FirstPostId,
+            pair.SecondPostId,
+            destinationId,
+            (from, to, start) => GetManualQuoteMinutes(from, to, transportId, out _, start),
+            departureTime,
+            fixedStartPostId);
     }
 
     private void UpdateTopTabs(Button activeTab)
@@ -1979,6 +2141,19 @@ public partial class MainWindow : Window
     {
         try
         {
+            if (!_initializing && !_applyingCommunity && !_communityApplicationsEnabled)
+            {
+                foreach (var product in _products.Where(p => _plannerPreferences.RetainedMarketStockByProductId.ContainsKey(p.Id)))
+                {
+                    var stock = product.IsWeeklyLimited ? product.ScannedMarketStock : product.CurrentStock;
+                    if (stock is { } current)
+                    {
+                        var unsold = CargoFor(ModeOf(product)).GetValueOrDefault(product.Id)?.Quantity ?? 0;
+                        _plannerPreferences.RetainedMarketStockByProductId[product.Id] =
+                            (int)Math.Clamp((long)current + unsold, 0, int.MaxValue);
+                    }
+                }
+            }
             PortableConfig.Save(PlannerPreferencesPath, _plannerPreferences);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -2159,6 +2334,7 @@ public partial class MainWindow : Window
             SavePlannerPreferences();
             _inventoryWindow?.SyncMerchantRating(post.Id, rating);
         }
+        if (_communityApplicationsEnabled) RefreshCommunityValues();
         RefreshProducts();
     }
 
@@ -2170,6 +2346,11 @@ public partial class MainWindow : Window
             ? Visibility.Visible : Visibility.Collapsed;
         GroupReadPriceListButton.Visibility = _plannerPreferences.ScreenReaderModeEnabled && IsGroupMode
             ? Visibility.Visible : Visibility.Collapsed;
+        if (!_plannerPreferences.ScreenReaderModeEnabled)
+        {
+            StopCommunitySharing();
+            CommunitySharingCheckBox.IsChecked = false;
+        }
         SavePlannerPreferences();
     }
 
@@ -2336,16 +2517,18 @@ public partial class MainWindow : Window
         BuyPriceInput.Text = product.CurrentBuyPriceText;
         if (!_keepAutoTabOnProductRefresh) TradeMiddleTabs.SelectedIndex = 0;
         RefreshQuotes();
+        RefreshCommunityProvenance();
     }
 
     private void BuyPriceInput_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (!BuyPriceInput.IsKeyboardFocusWithin || SelectedProduct is not { IsBarter: false } product ||
+        if (_applyingCommunity || _applyingLocalScan || !BuyPriceInput.IsKeyboardFocusWithin || SelectedProduct is not { IsBarter: false } product ||
             !decimal.TryParse(BuyPriceInput.Text, NumberStyles.Number, CultureInfo.CurrentCulture, out var buyPrice) || buyPrice <= 0)
             return;
         product.CurrentBuyPriceIsEstimated = false;
         product.CurrentBuyPrice = buyPrice;
         product.CurrentBuyPriceText = BuyPriceInput.Text;
+        RecordLocalCommunityValue(product.Id, CommunityBuyKey, buyPrice, "Manual");
         _plannerPreferences.ManualBuyPricesByProductId[product.Id] = buyPrice;
         SavePlannerPreferences();
         if (_quotesByProduct.TryGetValue(product.Id, out var quotes))
@@ -2357,23 +2540,43 @@ public partial class MainWindow : Window
 
     private void StockInput_TextChanged(object sender, TextChangedEventArgs e)
     {
+        if (_applyingCommunity || _applyingLocalScan) return;
         if (SelectedProduct is { } product && int.TryParse(StockInput.Text, NumberStyles.Integer, CultureInfo.CurrentCulture, out var stock))
         {
             product.CurrentStock = stock;
             product.StockInitialized = true;
+            if (StockInput.IsKeyboardFocusWithin && !product.IsWeeklyLimited)
+            {
+                RecordLocalCommunityValue(product.Id, CommunityStockKey, stock, "Manual");
+                SavePlannerPreferences();
+            }
             if (ModeOf(product) != GoodsMode.Trade) SaveWeeklyStock();
         }
     }
 
     public void SetDetectedStock(int productId, int stock)
     {
-        var product = _products.FirstOrDefault(entry => entry.Id == productId);
-        if (product is null || stock < 0) return;
-        product.CurrentStock = stock;
+        if (stock < 0) throw new ArgumentOutOfRangeException(nameof(stock));
+        var product = _products.FirstOrDefault(entry => entry.Id == productId)
+            ?? throw new ArgumentException("Unknown product.", nameof(productId));
+        if (product.IsWeeklyLimited)
+        {
+            if (!product.StockInitialized)
+                product.CurrentStock = Math.Min(product.MaxStock, product.SourceCount);
+            product.ScannedMarketStock = stock;
+        }
+        else product.CurrentStock = stock;
         product.StockInitialized = true;
         if (SelectedProduct?.Id == productId)
-            StockInput.Text = stock.ToString(CultureInfo.CurrentCulture);
+            StockInput.Text = product.CurrentStock.ToString(CultureInfo.CurrentCulture);
         if (ModeOf(product) != GoodsMode.Trade) SaveWeeklyStock();
+    }
+
+    private void AdjustScannedMarketStock(GoodsEntry product, int quantity)
+    {
+        CommunityConsumption(product, -quantity);
+        if (product.ScannedMarketStock is { } stock)
+            product.ScannedMarketStock = (int)Math.Clamp((long)stock + quantity, 0, int.MaxValue);
     }
 
     public void SetDetectedBuyPrice(int productId, decimal price)
@@ -2508,7 +2711,7 @@ public partial class MainWindow : Window
                         : "Sale price minus buy price, per item";
             }
             quote.PerItemProfitLossText = perItemProfitLoss is null
-                ? "--"
+                ? quote.PostId == SmugglerDestinationId && quote.DestinationPrice <= 0 ? "Inactive" : "--"
                 : perItemProfitLoss.Value >= 0
                     ? $"+{perItemProfitLoss.Value:N0}"
                     : perItemProfitLoss.Value.ToString("N0", CultureInfo.CurrentCulture);
@@ -2518,6 +2721,10 @@ public partial class MainWindow : Window
                 < 0 => System.Windows.Media.Brushes.Red,
                 _ => System.Windows.Media.Brushes.Black
             };
+            if (quote.PostId == SmugglerDestinationId && quote.DestinationPrice <= 0)
+                quote.PerItemProfitLossToolTip = "Smuggler is inactive for this good. Scan a visible quote or enter a positive sale price to reactivate.";
+            if (CommunityProvenance(product.Id, quote.PostId) is { Length: > 0 } provenance)
+                quote.PerItemProfitLossToolTip += $"\nSale price: {provenance}";
 
             var minutes = GetManualQuoteMinutes(sourcePost.Id, quote.PostId, SelectedTransport?.Id ?? 0,
                 out var timeSource);
@@ -2526,7 +2733,12 @@ public partial class MainWindow : Window
         }
     }
 
-    private decimal? GetManualQuoteMinutes(int sourcePostId, int destinationPostId, int transportId, out string source)
+    private decimal? GetManualQuoteMinutes(
+        int sourcePostId,
+        int destinationPostId,
+        int transportId,
+        out string source,
+        DateTimeOffset? departureTime = null)
     {
         source = "No route time for this trip.";
         if (destinationPostId == SmugglerDestinationId || transportId <= 0) return null;
@@ -2539,7 +2751,7 @@ public partial class MainWindow : Window
             (portals > 0 && loadBufferSeconds > 0
                 ? $"{Environment.NewLine}Includes {portals} portal{(portals == 1 ? "" : "s")} × {loadBufferSeconds} s load time"
                 : string.Empty);
-        var shipEstimate = _shipScheduleEstimator.Estimate(sourcePostId, destinationPostId, DateTimeOffset.UtcNow, transportId, PostName,
+        var shipEstimate = _shipScheduleEstimator.Estimate(sourcePostId, destinationPostId, departureTime ?? DateTimeOffset.UtcNow, transportId, PostName,
             _plannerPreferences.FerryBufferEnabled ? _plannerPreferences.FerryBufferSeconds : 0, speedPercent, loadBufferSeconds);
         if (shipEstimate is not null)
         {
@@ -2594,6 +2806,7 @@ public partial class MainWindow : Window
 
     private void PersistDestinationPriceEdit(DestinationQuote quote, string text)
     {
+        if (_applyingCommunity || _applyingLocalScan) return;
         quote.IsManualPrice = true;
         if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.CurrentCulture, out var price) && price > 0)
             SaveManualDestinationPrice(quote.ProductId, quote.PostId, price);
@@ -2607,6 +2820,10 @@ public partial class MainWindow : Window
         IReadOnlyList<PriceListOcrCandidate> Candidates, float MeanConfidence, bool CanAutoAccept)
     {
         public string DebugDetails { get; init; } = string.Empty;
+        public OcrStockRead? Stock { get; init; }
+        public decimal PurchaseDiscountPercent { get; init; }
+        public long CapturedAt { get; init; }
+        public IReadOnlyList<string> MissingDestinations { get; init; } = [];
     }
 
 #if DEBUG
@@ -2614,6 +2831,33 @@ public partial class MainWindow : Window
 #endif
 
     private async void ReadPriceListButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_scanCancellation is not null) return;
+        using var cancellation = new CancellationTokenSource();
+        _scanCancellation = cancellation;
+        ReadPriceListButton.IsEnabled = false;
+        GroupReadPriceListButton.IsEnabled = false;
+        try
+        {
+            await ScanPriceListAsync(cancellation.Token);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or ExternalException)
+        {
+            SetStatus($"Could not scan that screen region: {exception.Message}", true);
+        }
+        finally
+        {
+            _scanCancellation = null;
+            ApplyPendingCommunitySnapshot();
+            ReadPriceListButton.IsEnabled = true;
+            GroupReadPriceListButton.IsEnabled = true;
+        }
+    }
+
+    private async Task ScanPriceListAsync(CancellationToken cancellationToken)
     {
         if (!_plannerPreferences.ScreenReaderModeEnabled)
         {
@@ -2626,7 +2870,8 @@ public partial class MainWindow : Window
         while (true)
         {
             var usingSavedRegion = region is not null;
-            var (screenImage, capturedRegion, captureError) = await CapturePriceListImageAsync(region);
+            var (screenImage, capturedRegion, captureError) = await CapturePriceListImageAsync(region, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             if (screenImage is null || capturedRegion is null)
             {
                 if (usingSavedRegion)
@@ -2639,10 +2884,62 @@ public partial class MainWindow : Window
             }
 
             SetStatus(usingSavedRegion ? "Reading the saved scan region..." : "Reading the selected price list...");
+            var capturedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var capturedDiscounts = _posts.ToDictionary(post => post.Id, post => PurchaseDiscountPercentFor(post.Id));
+            var communityTicket = await BeginCommunityScanAsync(cancellationToken);
 #if DEBUG
             _lastScanFailureDetails = string.Empty;
 #endif
             var (read, readError) = await ReadPriceListImageAsync(screenImage);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (read is { MissingDestinations.Count: > 0 })
+            {
+                var expectedProduct = read.Product;
+                var missing = string.Join(", ", read.MissingDestinations);
+                SetStatus($"Scan may be obstructed: missing {missing}. Move the mouse/popups; retrying once a second for 5 seconds.");
+                var wasVisible = IsVisible;
+                var captureTimes = new System.Collections.Concurrent.ConcurrentDictionary<byte[], long>();
+                captureTimes[screenImage] = capturedAt;
+                try
+                {
+                    Hide();
+                    var retry = await OcrScanRetry.ReadAsync((Image: screenImage, Read: read, Error: readError),
+                        () =>
+                        {
+                            var image = CaptureScreenRegion(capturedRegion.Value);
+                            captureTimes[image] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                            return image;
+                        },
+                        async image =>
+                        {
+                            var result = await ReadPriceListImageAsync(image);
+                            return (Image: image, Read: result.Read, Error: result.Error);
+                        },
+                        attempt => attempt.Read is { MissingDestinations.Count: 0 } complete &&
+                            complete.Product.Id == expectedProduct.Id,
+                        cancellationToken);
+                    (screenImage, read, readError) = retry;
+                    capturedAt = captureTimes[screenImage];
+                }
+                finally
+                {
+                    if (wasVisible && !_helpClosing)
+                    {
+                        Show();
+                        Activate();
+                    }
+                }
+                if (read is null || read.MissingDestinations.Count > 0 || read.Product.Id != expectedProduct.Id)
+                {
+                    System.Media.SystemSounds.Hand.Play();
+                    var message = $"Scan obstructed: could not read all entries for {expectedProduct.Name} after 5 retries. " +
+                        "Move the mouse or popup out of the price list, include the full table, and press SCAN again. Nothing was applied.";
+                    if (readError is not null) message += $"{Environment.NewLine}{readError}";
+                    SetStatus(message, true);
+                    MessageBox.Show(this, message, "Scan obstructed", MessageBoxButton.OK, MessageBoxImage.None);
+                    return;
+                }
+            }
             if (read is null)
             {
 #if DEBUG
@@ -2659,17 +2956,26 @@ public partial class MainWindow : Window
             }
 
             RememberSuccessfulScanRegion(capturedRegion.Value);
+            read = read with
+            {
+                CapturedAt = capturedAt,
+                PurchaseDiscountPercent = read.Product.IsBarter ? 0 :
+                    capturedDiscounts[read.SourcePost.Id]
+            };
 #if DEBUG
             if (_plannerPreferences.ScanDebugMode && read.CanAutoAccept)
                 ScanDebugLog.Save(screenImage, read.Product.Name, read.DebugDetails);
 #endif
-            ApplyPriceListScan(read);
+            var accepted = ApplyPriceListScan(read);
+            if (_communityApplicationsEnabled) RefreshCommunityValues();
+            if (accepted is not null)
+                await SharePriceListScanAsync(read, accepted, communityTicket, cancellationToken);
             return;
         }
     }
 
     private async Task<(byte[]? Image, System.Drawing.Rectangle? Region, string? Error)> CapturePriceListImageAsync(
-        System.Drawing.Rectangle? savedRegion)
+        System.Drawing.Rectangle? savedRegion, CancellationToken cancellationToken)
     {
         var wasVisible = IsVisible;
         try
@@ -2678,7 +2984,7 @@ public partial class MainWindow : Window
             System.Drawing.Rectangle region;
             if (savedRegion is { } saved)
             {
-                await Task.Delay(200);
+                await Task.Delay(200, cancellationToken);
                 region = saved;
             }
             else
@@ -2688,6 +2994,7 @@ public partial class MainWindow : Window
                     return (null, null, null);
                 region = selected;
             }
+            cancellationToken.ThrowIfCancellationRequested();
             return (CaptureScreenRegion(region), region, null);
         }
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or ExternalException)
@@ -2696,7 +3003,7 @@ public partial class MainWindow : Window
         }
         finally
         {
-            if (wasVisible)
+            if (wasVisible && !_helpClosing)
             {
                 Show();
                 Activate();
@@ -2741,21 +3048,26 @@ public partial class MainWindow : Window
 
             var townRows = PriceListOcrParser.FilterTownRowsForDestinations(result.TownRows,
                 productQuotes.Select(quote => quote.PostId), sourcePost.Id);
+            var expectedPostIds = productQuotes
+                .Where(quote => quote.PostId != SmugglerDestinationId || townRows.Any(row => row.PostId == SmugglerDestinationId))
+                .Select(quote => quote.PostId).ToArray();
+            string[] MissingEntries(IReadOnlyList<PriceListOcrCandidate> entries) =>
+                PriceListOcrParser.MissingDestinationEntries(expectedPostIds, townRows, entries)
+                    .Select(id => productQuotes.First(quote => quote.PostId == id).PostName).ToArray();
             if (product.IsBarter)
             {
                 // Barter lists have no profit column and the cost comes from material values, so only sale prices are ingested.
                 var barterCandidates = PriceListOcrParser.ParseSaleOnlyCells(townRows, result.PriceCells);
-                if (barterCandidates.Count == 0)
-                    return (null, "No town prices were found in the Ducat column. Include the bracket corner and full price table.");
                 var destinationWeights = townRows
                     .Where(row => _postPairWeights.ContainsKey((sourcePost.Id, row.PostId)))
                     .ToDictionary(row => row.PostId, row => _postPairWeights[(sourcePost.Id, row.PostId)]);
                 barterCandidates = PriceListOcrParser.ApplyBarterValueCheck(barterCandidates, destinationWeights,
                     product.MinPrice, product.MaxPrice);
+                var missing = MissingEntries(barterCandidates);
                 return (new PriceListScanRead(product, sourcePost, productQuotes, null, barterCandidates,
                     result.MeanConfidence,
-                    PriceListOcrParser.CanAutoAccept(barterCandidates, townRows.Count, false))
-                    { DebugDetails = DescribeForDebug(result, product, sourcePost, null, barterCandidates) }, null);
+                    missing.Length == 0 && result.Stock is { IsReliable: true } && PriceListOcrParser.CanAutoAccept(barterCandidates, townRows.Count, false))
+                    { Stock = result.Stock, MissingDestinations = missing, DebugDetails = DescribeForDebug(result, product, sourcePost, null, barterCandidates) }, null);
             }
 
             var sourcePrice = PriceListOcrParser.ParseSourcePrice(
@@ -2769,7 +3081,7 @@ public partial class MainWindow : Window
                 var lowest = PurchasePriceRange.LowestPlausible(product.MinPrice, PurchaseDiscountPercentFor(sourcePost.Id));
                 sourcePrice = sourcePrice with
                 {
-                    SourceText = $"{sourcePrice.SourceText} (outside the expected {lowest:N0}-{product.MaxPrice:N0} after discounts; check it)"
+                    SourceText = $"{sourcePrice.SourceText} (outside broad sanity bounds {lowest:N0}-{PurchasePriceRange.HighestPlausible(product.MaxPrice):N0}; check it)"
                 };
             }
 
@@ -2782,13 +3094,13 @@ public partial class MainWindow : Window
             var buyPriceIsEstimated = sourcePrice is null && !hasCurrentBuyPrice;
             var candidates = PriceListOcrParser.ParsePriceCells(townRows, result.PriceCells,
                 buyPrice, buyPriceIsEstimated);
-            if (candidates.Count == 0)
-                return (null, "No town prices were found in the Ducat column. Include the bracketed name and full price table.");
+            var missingDestinations = MissingEntries(candidates);
 
             return (new PriceListScanRead(product, sourcePost, productQuotes, sourcePrice, candidates,
                 result.MeanConfidence,
-                !sourcePriceSuspect && PriceListOcrParser.CanAutoAccept(candidates, townRows.Count, buyPriceIsEstimated))
-                { DebugDetails = DescribeForDebug(result, product, sourcePost, sourcePrice, candidates) }, null);
+                missingDestinations.Length == 0 && result.Stock is { IsReliable: true } && !sourcePriceSuspect &&
+                PriceListOcrParser.CanAutoAccept(candidates, townRows.Count, buyPriceIsEstimated))
+                { Stock = result.Stock, MissingDestinations = missingDestinations, DebugDetails = DescribeForDebug(result, product, sourcePost, sourcePrice, candidates) }, null);
         }
         catch (Exception exception)
         {
@@ -2807,27 +3119,41 @@ public partial class MainWindow : Window
         string.Empty;
 #endif
 
-    private void ApplyPriceListScan(PriceListScanRead read)
+    private sealed record AcceptedPriceListScan(decimal? SourcePrice, int? Stock,
+        IReadOnlyList<PriceListOcrCandidate> Candidates, CommunityReview? Review);
+
+    private AcceptedPriceListScan? ApplyPriceListScan(PriceListScanRead read)
     {
+        if (read.MissingDestinations.Count > 0)
+        {
+            SetStatus("Scan obstructed: destination entries are missing. Nothing was applied; scan the full unobstructed table again.", true);
+            return null;
+        }
         try
         {
             var (product, sourcePost, productQuotes) = (read.Product, read.SourcePost, read.ProductQuotes);
             decimal? acceptedSourcePrice;
+            int? acceptedStock;
             IReadOnlyList<PriceListOcrCandidate> acceptedCandidates;
+            CommunityReview? reviewProvenance = null;
             if (read.CanAutoAccept)
             {
                 acceptedSourcePrice = read.SourcePrice?.Price;
+                acceptedStock = read.Stock?.Count;
                 acceptedCandidates = read.Candidates;
             }
             else
             {
                 var review = new OcrPriceReviewWindow(product.Name, sourcePost.Name, read.Candidates,
-                    read.MeanConfidence, read.SourcePrice, showSourcePrice: !product.IsBarter) { Owner = this };
-                if (review.ShowDialog() != true) return;
+                    read.MeanConfidence, read.SourcePrice, showSourcePrice: !product.IsBarter, stock: read.Stock) { Owner = this };
+                if (review.ShowDialog() != true) return null;
                 acceptedSourcePrice = review.AcceptedSourcePrice;
+                acceptedStock = review.AcceptedStock;
                 acceptedCandidates = review.AcceptedCandidates;
+                reviewProvenance = review.ReviewProvenance;
             }
 
+            _applyingLocalScan = true;
             var rotationChanged = ActivateRotation(product);
             RecordRotationSighting(product, BarterSightingSource.Scan);
             if (_goodsMode != ModeOf(product))
@@ -2837,10 +3163,18 @@ public partial class MainWindow : Window
             else if (rotationChanged)
                 RefreshProducts();
             ProductList.SelectedItem = product;
+            if (acceptedStock is { } stock && LocalCommunityReadIsCurrent(product.Id, CommunityStockKey, read.CapturedAt))
+            {
+                SetDetectedStock(product.Id, stock);
+                RecordLocalCommunityValue(product.Id, CommunityStockKey, stock, "Local scan", read.CapturedAt);
+                InvalidateAutoResults("Stock updated by scan. Press CALC to refresh routes.");
+            }
 
-            if (!product.IsBarter && acceptedSourcePrice is { } sourcePrice)
+            if (!product.IsBarter && acceptedSourcePrice is { } sourcePrice &&
+                LocalCommunityReadIsCurrent(product.Id, CommunityBuyKey, read.CapturedAt))
             {
                 SetDetectedBuyPrice(product.Id, sourcePrice);
+                RecordLocalCommunityValue(product.Id, CommunityBuyKey, sourcePrice, "Local scan", read.CapturedAt);
                 _plannerPreferences.ManualBuyPricesByProductId[product.Id] = sourcePrice;
                 foreach (var quote in productQuotes)
                     if (quote.PostId != SmugglerDestinationId)
@@ -2848,12 +3182,20 @@ public partial class MainWindow : Window
             }
 
             var applied = 0;
+            if (!read.Candidates.Any(candidate => candidate.PostId == SmugglerDestinationId) &&
+                productQuotes.FirstOrDefault(quote => quote.PostId == SmugglerDestinationId) is { } smuggler &&
+                LocalCommunityReadIsCurrent(product.Id, SmugglerDestinationId, read.CapturedAt))
+            {
+                smuggler.DestinationPrice = 0;
+                SaveManualDestinationPrice(product.Id, SmugglerDestinationId, 0, "Local scan", read.CapturedAt);
+            }
             foreach (var candidate in acceptedCandidates)
             {
                 var quote = productQuotes.FirstOrDefault(item => item.PostId == candidate.PostId);
-                if (quote is null || candidate.Price <= 0) continue;
+                if (quote is null || candidate.Price <= 0 ||
+                    !LocalCommunityReadIsCurrent(product.Id, candidate.PostId, read.CapturedAt)) continue;
                 quote.DestinationPrice = candidate.Price;
-                SaveManualDestinationPrice(product.Id, candidate.PostId, candidate.Price);
+                SaveManualDestinationPrice(product.Id, candidate.PostId, candidate.Price, "Local scan", read.CapturedAt);
                 applied++;
             }
 
@@ -2862,14 +3204,18 @@ public partial class MainWindow : Window
             RefreshDestinationTotals();
             SavePlannerPreferences();
             var sourcePriceStatus = acceptedSourcePrice is null || product.IsBarter ? string.Empty : " and source price";
+            var stockStatus = acceptedStock is null ? "; stock unchanged" : $" and stock {acceptedStock:N0}";
             SetStatus(read.CanAutoAccept
-                ? $"Auto-applied {applied} cross-checked town prices{sourcePriceStatus} to {product.Name}."
-                : $"Applied {applied} confirmed town prices{sourcePriceStatus} to {product.Name}.");
+                ? $"Auto-applied {applied} cross-checked town prices{sourcePriceStatus}{stockStatus} to {product.Name}."
+                : $"Applied {applied} confirmed town prices{sourcePriceStatus}{stockStatus} to {product.Name}.");
+            return new AcceptedPriceListScan(acceptedSourcePrice, acceptedStock, acceptedCandidates, reviewProvenance);
         }
         catch (Exception exception)
         {
             SetStatus($"Price-list OCR failed: {exception.Message}", true);
+            return null;
         }
+        finally { _applyingLocalScan = false; }
     }
 
     private void RememberSuccessfulScanRegion(System.Drawing.Rectangle region)
@@ -2911,11 +3257,10 @@ public partial class MainWindow : Window
         if (!ShipScheduleEstimator.TryParseBufferSeconds(FerryBufferSecondsInput.Text, out var seconds))
         {
             FerryBufferSecondsPaper.BorderBrush = System.Windows.Media.Brushes.Red;
-            FerryBufferSecondsInput.ToolTip = "Enter whole seconds from 0 to 300";
+            SetStatus("Ship boarding buffer: enter whole seconds from 0 to 300.", true);
             return;
         }
         FerryBufferSecondsPaper.ClearValue(Border.BorderBrushProperty);
-        FerryBufferSecondsInput.ToolTip = "Whole seconds, 0-300";
         if (_plannerPreferences.FerryBufferSeconds == seconds) return;
         _plannerPreferences.FerryBufferSeconds = seconds;
         SavePlannerPreferences();
@@ -2928,11 +3273,10 @@ public partial class MainWindow : Window
         if (!ShipScheduleEstimator.TryParseBufferSeconds(PortalLoadBufferSecondsInput.Text, out var seconds))
         {
             PortalLoadBufferSecondsPaper.BorderBrush = System.Windows.Media.Brushes.Red;
-            PortalLoadBufferSecondsInput.ToolTip = "Enter whole seconds from 0 to 300";
+            SetStatus("Load time buffer: enter whole seconds from 0 to 300.", true);
             return;
         }
         PortalLoadBufferSecondsPaper.ClearValue(Border.BorderBrushProperty);
-        PortalLoadBufferSecondsInput.ToolTip = "Whole seconds per portal, 0-300";
         if (_plannerPreferences.PortalLoadBufferSeconds == seconds) return;
         _plannerPreferences.PortalLoadBufferSeconds = seconds;
         SavePlannerPreferences();
@@ -3004,7 +3348,7 @@ public partial class MainWindow : Window
         return stream.ToArray();
     }
 
-    private void SaveManualDestinationPrice(int productId, int postId, decimal price)
+    private void SaveManualDestinationPrice(int productId, int postId, decimal price, string origin = "Manual", long? time = null)
     {
         if (!_plannerPreferences.ManualDestinationPricesByProductId.TryGetValue(productId, out var prices))
         {
@@ -3012,6 +3356,7 @@ public partial class MainWindow : Window
             _plannerPreferences.ManualDestinationPricesByProductId[productId] = prices;
         }
         prices[postId] = price;
+        RecordLocalCommunityValue(productId, postId, price, origin, time);
     }
 
     private void RemoveManualDestinationPrice(int productId, int postId)
@@ -3088,6 +3433,12 @@ public partial class MainWindow : Window
         }
         var alreadyLoaded = cargo.TryGetValue(product.Id, out var cargoLine) ? cargoLine.Quantity : 0;
         var remainingStock = Math.Max(0, currentStock);
+        remainingStock = Math.Min(remainingStock, product.ScannedMarketStock ?? int.MaxValue);
+        if (product.ScannedMarketStock == 0)
+        {
+            SetStatus($"{product.Name}: scanned post supply is 0. Scan again to update it.", true);
+            return;
+        }
         if (product.IsWeeklyLimited)
             remainingStock = Math.Min(remainingStock, Math.Max(0, product.SourceCount - alreadyLoaded));
         // Barter goods are paid with exchange materials, so the Ducat balance does not cap them.
@@ -3107,6 +3458,7 @@ public partial class MainWindow : Window
 
         product.CurrentBuyPrice = currentBuyPrice;
         product.CurrentStock = currentStock - quantityToAdd;
+        AdjustScannedMarketStock(product, -quantityToAdd);
         if (cargoLine is null)
         {
             cargoLine = new CargoLine { Product = product, Quantity = 0, UnitBuyPrice = currentBuyPrice };
@@ -3174,6 +3526,7 @@ public partial class MainWindow : Window
         if (!line.Product.IsBarter) RefundDucats(removedQuantity * line.UnitBuyPrice);
         line.Product.CurrentStock = Math.Min(line.Product.IsWeeklyLimited ? Math.Min(line.Product.MaxStock, line.Product.SourceCount) : line.Product.MaxStock,
             line.Product.CurrentStock + removedQuantity);
+        AdjustScannedMarketStock(line.Product, removedQuantity);
         if (SelectedProduct?.Id == productId)
             StockInput.Text = line.Product.CurrentStock.ToString(CultureInfo.CurrentCulture);
         if (line.Quantity == 0) cargo.Remove(productId);
@@ -3327,6 +3680,7 @@ public partial class MainWindow : Window
         saleProceeds = ProfitCalculator.Calculate(saleLines).GrossSale;
         soldGoods = cargo.Values.Sum(line => line.Quantity);
         RecordTradeHistory(cargo, salePrices, destinationName, saleProceeds);
+        _activeExpansionCoverCosts.Remove(ModeOf(cargo.Values.First().Product));
         var weeklyStockSold = cargo.Values.Any(line => ModeOf(line.Product) != GoodsMode.Trade);
         cargo.Clear();
         if (weeklyStockSold) SaveWeeklyStock();
@@ -3351,7 +3705,8 @@ public partial class MainWindow : Window
             && Enum.TryParse<GuaranteeLetterKind>(letterName, out var kind) ? kind : GuaranteeLetterKind.None;
         var totals = ModifierTotals(mode == GoodsMode.Group);
         var modifiers = new RewardModifiers(_plannerPreferences.CommerceMasteryRank, letter, GoldPerDucat, -1,
-            GetGuaranteeLetterMarketValue(letter) ?? 0, totals.DucatPercent, totals.ProfitPercent, totals.MerchantRatingPercent);
+            GetGuaranteeLetterMarketValue(letter) ?? 0, totals.DucatPercent, totals.ProfitPercent, totals.MerchantRatingPercent,
+            _activeExpansionCoverCosts.GetValueOrDefault(mode));
         var reward = CommerceRewardModel.Calculate(rewardLines, isBarter, modifiers);
         var goods = cargo.Values.Select(line => new TradeHistoryGood(line.Product.Name, line.Quantity)).ToList();
         TradeHistory.Add(new TradeHistoryEntry(DateTime.Now, ModeName(mode), destinationName, goods, saleProceeds,
@@ -3419,6 +3774,8 @@ public partial class MainWindow : Window
 
     private void ClearCargoContents(Dictionary<int, CargoLine> cargo)
     {
+        if (cargo.Count > 0)
+            _activeExpansionCoverCosts.Remove(ModeOf(cargo.Values.First().Product));
         var cashToRefund = cargo.Values.Where(line => !line.Product.IsBarter).Sum(line => line.Quantity * line.UnitBuyPrice);
         foreach (var line in cargo.Values)
         {
@@ -3426,6 +3783,7 @@ public partial class MainWindow : Window
                 ? Math.Min(line.Product.MaxStock, line.Product.SourceCount)
                 : line.Product.MaxStock;
             line.Product.CurrentStock = Math.Min(stockLimit, line.Product.CurrentStock + line.Quantity);
+            AdjustScannedMarketStock(line.Product, line.Quantity);
         }
         var weeklyStockChanged = cargo.Values.Any(line => ModeOf(line.Product) != GoodsMode.Trade);
         cargo.Clear();
@@ -3471,6 +3829,7 @@ public partial class MainWindow : Window
 
     private void RefreshTransportLoad()
     {
+        if (ActiveCargo.Count == 0) _activeExpansionCoverCosts.Remove(_goodsMode);
         UpdateShoppingListButton();
         _shoppingListWindow?.Refresh();
         if (SelectedTransport is not { } transport || TransportSlots is null) return;
@@ -3704,13 +4063,19 @@ public partial class MainWindow : Window
         if (destination is not int destinationId) return null;
         var starts = ActiveCargo.Values.Select(line => line.Product.PostId).Distinct().Where(id => id != destinationId).ToList();
         if (starts.Count == 0) return null;
-        // A barter pair load visits both outposts in whichever order is faster, as its Load Profit time assumes.
-        if (starts.Count == 2 && BarterPairRoutes.Any(route => starts.Contains(route.FirstPostId) && starts.Contains(route.SecondPostId)))
+        // A barter pair load visits both outposts in the same order used by its Load Profit estimate.
+        var pair = starts.Count == 2
+            ? BarterPairRoutes.FirstOrDefault(route => starts.Contains(route.FirstPostId) && starts.Contains(route.SecondPostId))
+            : default;
+        if (pair.RouteId != 0)
         {
             var transportId = SelectedTransport?.Id ?? 0;
-            decimal Minutes(int first, int second) =>
-                (GetManualQuoteMinutes(first, second, transportId, out _) ?? 1e6m) + (GetManualQuoteMinutes(second, destinationId, transportId, out _) ?? 1e6m);
-            if (Minutes(starts[1], starts[0]) < Minutes(starts[0], starts[1])) starts.Reverse();
+            var first = GetBarterPairStartPostId(pair.RouteId, destinationId, transportId, DateTimeOffset.UtcNow);
+            starts =
+            [
+                first,
+                first == pair.FirstPostId ? pair.SecondPostId : pair.FirstPostId
+            ];
         }
         return [.. starts, destinationId];
     }
@@ -3727,27 +4092,48 @@ public partial class MainWindow : Window
                 : ActiveCargo.Count == 0 ? "Load goods to map their route." : "Choose a destination for the route map."]));
             return;
         }
-        RouteMapPlan Leg(int from, int to)
+        var departureTime = DateTimeOffset.UtcNow;
+        var transportId = SelectedTransport?.Id ?? TransportIds.Backpack;
+        var plans = new List<RouteMapPlan>();
+        foreach (var (from, to) in stops.Zip(stops.Skip(1)))
         {
-            var ship = _shipScheduleEstimator.Estimate(from, to, DateTimeOffset.UtcNow, SelectedTransport?.Id ?? 1, PostName,
+            var ship = _shipScheduleEstimator.Estimate(from, to, departureTime, transportId, PostName,
                 _plannerPreferences.FerryBufferEnabled ? _plannerPreferences.FerryBufferSeconds : 0,
                 ModifierTotals(IsGroupMode).TransportSpeedPercent, _plannerPreferences.PortalLoadBufferSeconds);
-            return _routeMapData!.Plan(from, to, ship?.Ports, PostName);
+            plans.Add(_routeMapData.Plan(from, to, ship?.Ports, PostName));
+            var minutes = GetManualQuoteMinutes(from, to, transportId, out _, departureTime);
+            if (minutes is > 0) departureTime = departureTime.AddMinutes((double)minutes.Value);
         }
-        _routeMapWindow.SetPlan(RouteMapPlan.Join(stops.Zip(stops.Skip(1), Leg), string.Join(" → ", stops.Select(PostName))));
+        _routeMapWindow.SetPlan(RouteMapPlan.Join(plans, string.Join(" → ", stops.Select(PostName))));
     }
     private void SetStatus(string message, bool isError = false)
     {
-        StatusText.Text = message;
-        StatusText.Foreground = isError
-            ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(92, 36, 24))
-            : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(58, 44, 25));
-        StatusPanel.Background = isError
-            ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(218, 184, 158))
-            : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(197, 175, 127));
-        StatusPanel.Visibility = Visibility.Visible;
-        _statusTimer.Stop();
-        _statusTimer.Start();
+        _statusNotifications.Add(new StatusNotification(message, isError));
+        if (!isError) _statusTimer.Start();
+        RefreshStatusPanelVisibility();
+    }
+
+    private void DismissStatusError_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: StatusNotification { IsError: true } notification })
+            _statusNotifications.Remove(notification);
+        RefreshStatusPanelVisibility();
+    }
+
+    private void DismissStatusNotification_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: StatusNotification { IsError: false } notification })
+        {
+            _statusNotifications.Remove(notification);
+            e.Handled = true;
+            RefreshStatusPanelVisibility();
+        }
+    }
+
+    private void RefreshStatusPanelVisibility()
+    {
+        StatusPanel.Visibility = _statusNotifications.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (!_statusNotifications.Any(item => !item.IsError)) _statusTimer.Stop();
     }
 
     private void WindowHeader_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -3844,10 +4230,39 @@ public partial class MainWindow : Window
         _barterMaterialsWindow?.RefreshVerdicts();
     }
 
-    private void TradeProfitInGold_Changed(object sender, RoutedEventArgs e)
+    private void HelpBubbles_Changed(object sender, RoutedEventArgs e)
     {
         if (_initializing) return;
-        _plannerPreferences.ShowTradeProfitInGold = TradeProfitInGoldCheckBox.IsChecked == true;
+        _plannerPreferences.HelpBubblesEnabled = HelpBubblesCheckBox.IsChecked == true;
+        ApplyTooltipPreferences();
+    }
+
+    private void CalculationBreakdowns_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_initializing) return;
+        _plannerPreferences.CalculationBreakdownsEnabled = CalculationBreakdownsCheckBox.IsChecked == true;
+        ApplyTooltipPreferences();
+    }
+
+    private void ItemStatusTooltips_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_initializing) return;
+        _plannerPreferences.ItemStatusTooltipsEnabled = ItemStatusTooltipsCheckBox.IsChecked == true;
+        ApplyTooltipPreferences();
+    }
+
+    private void ApplyTooltipPreferences()
+    {
+        TooltipSettings.Configure(_plannerPreferences.HelpBubblesEnabled,
+            _plannerPreferences.CalculationBreakdownsEnabled,
+            _plannerPreferences.ItemStatusTooltipsEnabled);
+        SavePlannerPreferences();
+    }
+
+    private void TradeProfitCurrency_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_initializing) return;
+        _plannerPreferences.ShowTradeProfitInGold = TradeProfitInGoldRadio.IsChecked == true;
         SavePlannerPreferences();
         RefreshManualQuoteMetrics();
         RefreshRewardDisplays();
@@ -4289,6 +4704,11 @@ public sealed class GoodsEntry : INotifyPropertyChanged
     public decimal CurrentBuyPrice { get; set; }
     [JsonIgnore]
     public int CurrentStock { get; set; }
+    [JsonIgnore]
+    public int? ScannedMarketStock { get; set; }
+    [JsonIgnore]
+    public int AvailableStock => Math.Min(Math.Max(0, StockInitialized ? CurrentStock :
+        IsWeeklyLimited ? Math.Min(MaxStock, SourceCount) : MaxStock), ScannedMarketStock ?? int.MaxValue);
     [JsonIgnore]
     public bool StockInitialized { get; set; }
     [JsonIgnore]

@@ -14,6 +14,16 @@ public static class GuaranteeLetters
     // A blank or 0 market value turns the letter off for automated selection; the value also prices using a held letter.
     public static bool IsAvailable(int? marketValue) => marketValue is > 0;
 
+    public static List<GuaranteeLetterKind> AutoCandidates(GuaranteeLetterKind? letterOverride,
+        Func<GuaranteeLetterKind, int?> marketValue) => letterOverride is { } forced
+        ? [forced]
+        : [GuaranteeLetterKind.None, .. All.Where(letter => IsAvailable(marketValue(letter.Kind))).Select(letter => letter.Kind)];
+
+    public static RewardModifiers AutoModifiers(RewardModifiers modifiers, GuaranteeLetterKind? letterOverride) =>
+        letterOverride is { } forced
+            ? modifiers with { Letter = forced, LetterSupply = -1, LetterMarketValue = 0 }
+            : modifiers;
+
     public static IReadOnlyList<GuaranteeLetterInfo> All { get; } =
     [
         new(GuaranteeLetterKind.Ogre, "Ogre's Letter of Guarantee", 30, 15, true, 300),
@@ -34,7 +44,8 @@ public readonly record struct RewardLine(int Quantity, decimal BuyPrice, decimal
 
 // ExtraDucatPercent adds Ducats only (titles, William); ExtraProfitPercent raises profit like Commerce Mastery (group buffs).
 public sealed record RewardModifiers(string MasteryRank, GuaranteeLetterKind Letter, decimal GoldPerDucat, int LetterSupply = -1,
-    decimal LetterMarketValue = 0, decimal ExtraDucatPercent = 0, decimal ExtraProfitPercent = 0, decimal MerchantRatingPercent = 0);
+    decimal LetterMarketValue = 0, decimal ExtraDucatPercent = 0, decimal ExtraProfitPercent = 0, decimal MerchantRatingPercent = 0,
+    decimal ExpansionCoverCostGold = 0);
 
 public sealed record CommerceRewardBreakdown(
     bool IsBarter,
@@ -61,11 +72,12 @@ public sealed record CommerceRewardBreakdown(
     decimal ExtraDucatPercent = 0,
     decimal ExtraDucatBonus = 0,
     decimal ExtraProfitPercent = 0,
-    decimal ExtraProfitBonus = 0)
+    decimal ExtraProfitBonus = 0,
+    decimal ExpansionCoverCostGold = 0)
 {
     public decimal DucatGold => DucatGain * GoldPerDucat;
 
-    public decimal TotalGold => RawGold + DucatGold - MaterialGold - LetterCostGold;
+    public decimal TotalGold => RawGold + DucatGold - MaterialGold - LetterCostGold - ExpansionCoverCostGold;
 }
 
 public static class CommerceRewardModel
@@ -142,7 +154,8 @@ public static class CommerceRewardModel
         return new CommerceRewardBreakdown(isBarter, modifiers.MasteryRank, masteryPercent, letter, letterApplied, letterNote,
             grossSale, purchaseCost, baseProfit, masteryBonus, letterBonus, letterGoldBonus, letterDucats,
             letterCost, ducatGain, rawGold, rate, materialGold, rewardBase + masteryBonus + extraProfitBonus + ratingBonus, exp, Math.Max(0m, seasonal),
-            extraDucatPercent, extraDucatBonus, extraProfitPercent, extraProfitBonus);
+            extraDucatPercent, extraDucatBonus, extraProfitPercent, extraProfitBonus,
+            perLoadLetterEffects && lineList.Any(line => line.Quantity > 0) ? Math.Max(0m, modifiers.ExpansionCoverCostGold) : 0m);
     }
 
     // The score uses the buy price before purchase discounts (wiki: discount-rate effects are not reflected), so a
@@ -178,6 +191,7 @@ public static class CommerceRewardModel
         var text = $"{Compact(reward.RawGold)}+{Compact(reward.DucatGain)}×{Rate(reward.GoldPerDucat)}";
         if (reward.IsBarter) text += $"−{Compact(reward.MaterialGold)}";
         if (reward.LetterCostGold > 0) text += $"−{Compact(reward.LetterCostGold)}";
+        if (reward.ExpansionCoverCostGold > 0) text += $"−{Compact(reward.ExpansionCoverCostGold)}";
         return $"{text}={Compact(reward.TotalGold)}";
     }
 
@@ -185,7 +199,8 @@ public static class CommerceRewardModel
     {
         var materials = reward.IsBarter ? $" − {reward.MaterialGold:N0} material Gold" : string.Empty;
         var letter = reward.LetterCostGold > 0 ? $" − {reward.LetterCostGold:N0} letter value" : string.Empty;
-        return $"{reward.RawGold:N0} Gold + {reward.DucatGain:N0} Ducats × {Rate(reward.GoldPerDucat)} Gold per Ducat{materials}{letter} = {reward.TotalGold:N0} Gold";
+        var cover = reward.ExpansionCoverCostGold > 0 ? $" − {reward.ExpansionCoverCostGold:N0} Commerce Expansion Cover" : string.Empty;
+        return $"{reward.RawGold:N0} Gold + {reward.DucatGain:N0} Ducats × {Rate(reward.GoldPerDucat)} Gold per Ducat{materials}{letter}{cover} = {reward.TotalGold:N0} Gold";
     }
 
     public static string DetailedTooltip(CommerceRewardBreakdown reward)
@@ -221,8 +236,11 @@ public static class CommerceRewardModel
             builder.AppendLine($"Titles and partner: +{reward.ExtraDucatPercent:0.##}% = +{reward.ExtraDucatBonus:N0} Ducats.");
         builder.AppendLine($"Ducats earned: {reward.DucatGain:N0} × {Rate(reward.GoldPerDucat)} Gold per Ducat = {reward.DucatGold:N0} Gold.");
         builder.AppendLine($"Gold earned: {reward.RawGold:N0}.");
+        if (reward.ExpansionCoverCostGold > 0)
+            builder.AppendLine($"Commerce Expansion Cover: +1 slot, +100 weight; one per trip costs {reward.ExpansionCoverCostGold:N0} Gold.");
         var deductions = (reward.IsBarter ? $" − {reward.MaterialGold:N0}" : string.Empty) +
-            (reward.LetterCostGold > 0 ? $" − {reward.LetterCostGold:N0}" : string.Empty);
+            (reward.LetterCostGold > 0 ? $" − {reward.LetterCostGold:N0}" : string.Empty) +
+            (reward.ExpansionCoverCostGold > 0 ? $" − {reward.ExpansionCoverCostGold:N0}" : string.Empty);
         builder.AppendLine($"Total: {reward.RawGold:N0} + {reward.DucatGold:N0}{deductions} = {reward.TotalGold:N0} Gold.");
         builder.AppendLine(reward.IsBarter
             ? $"EXP ≈ {reward.Exp:N0} · Seasonal score {reward.SeasonalScore:N0}."
@@ -234,15 +252,17 @@ public static class CommerceRewardModel
 
 public static class PurchasePriceRange
 {
-    // Discounts only lower buy prices, so they widen the lower bound of a scan sanity check.
+    // Historic catalog limits are only a broad guard against order-of-magnitude OCR mistakes.
     public static bool IsPlausibleBuyPrice(decimal price, int catalogMin, int catalogMax, decimal discountPercent)
     {
         if (price <= 0 || catalogMax <= 0) return false;
-        return price >= LowestPlausible(catalogMin, discountPercent) && price <= catalogMax;
+        return price >= LowestPlausible(catalogMin, discountPercent) && price <= HighestPlausible(catalogMax);
     }
 
     public static decimal LowestPlausible(int catalogMin, decimal discountPercent) =>
-        decimal.Floor(catalogMin * (100m - Math.Clamp(discountPercent, 0m, 100m)) / 100m);
+        Math.Max(1, decimal.Floor(catalogMin * (100m - Math.Clamp(discountPercent, 0m, 100m)) / 100m / 4m));
+
+    public static decimal HighestPlausible(int catalogMax) => (decimal)catalogMax * 4m;
 }
 
 public static class GroupDestinationBonus

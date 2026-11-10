@@ -6,19 +6,24 @@
         KeyDown="Window_KeyDown">
     <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="68" />
+            <RowDefinition Height="96" />
             <RowDefinition Height="*" />
             <RowDefinition Height="38" />
         </Grid.RowDefinitions>
         <Border Background="#493A26" BorderBrush="#A88A46" BorderThickness="1" Padding="8,4">
             <Grid>
-                <Grid.RowDefinitions><RowDefinition Height="18"/><RowDefinition Height="14"/><RowDefinition Height="24"/></Grid.RowDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="18"/><RowDefinition Height="14"/><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
                 <TextBlock Text="REVIEW RECOGNIZED PRICES" Foreground="#F4ECD9" FontSize="10" FontWeight="Bold" />
                 <TextBlock x:Name="OcrConfidenceText" Grid.Row="1" Foreground="#D8C69F" FontSize="8" />
                 <DockPanel x:Name="SourcePricePanel" Grid.Row="2" LastChildFill="True">
                     <CheckBox x:Name="ApplySourcePriceCheck" Content="APPLY SOURCE PRICE" IsChecked="True" VerticalAlignment="Center" Foreground="#F4ECD9" FontSize="8" />
                     <TextBox x:Name="SourcePriceInput" Width="72" Margin="8,1" VerticalContentAlignment="Center" FontSize="9" />
                     <TextBlock x:Name="SourcePriceText" Foreground="#D8C69F" FontSize="8" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+                <DockPanel Grid.Row="3" LastChildFill="True">
+                    <CheckBox x:Name="ApplyStockCheck" Content="APPLY STOCK" VerticalAlignment="Center" Foreground="#F4ECD9" FontSize="8"/>
+                    <TextBox x:Name="StockInput" Width="72" Margin="8,1" VerticalContentAlignment="Center" FontSize="9"/>
+                    <TextBlock x:Name="StockText" Foreground="#D8C69F" FontSize="8" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                 </DockPanel>
             </Grid>
         </Border>
@@ -40,7 +45,7 @@
         </DataGrid>
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="90"/><ColumnDefinition Width="8"/><ColumnDefinition Width="120"/></Grid.ColumnDefinitions>
-            <TextBlock x:Name="ReviewStatusText" Text="Verify the town and price before applying." Foreground="#54482F" FontSize="8" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <TextBlock x:Name="ReviewStatusText" Text="Verify before applying. Sharing needs every town, source price and stock; edits are flagged manual." Foreground="#54482F" FontSize="8" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             <Button Grid.Column="1" Content="CANCEL" Click="Cancel_Click" Background="#625946" Foreground="#F4ECD9" BorderBrush="#785B32" BorderThickness="1" FontSize="8" />
             <Button Grid.Column="3" Content="APPLY SELECTED" Click="Apply_Click" Background="#D2AA58" Foreground="#201B12" BorderBrush="#795E2D" BorderThickness="1" FontSize="8" FontWeight="Bold" />
         </Grid>

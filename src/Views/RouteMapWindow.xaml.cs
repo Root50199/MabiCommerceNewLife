@@ -11,7 +11,6 @@ namespace MabiCommerceNewLife;
 public sealed class RouteMapOverlaySettings
 {
     public bool LinesMode { get; set; }
-    public bool ShowOtherRoutes { get; set; } = true;
     public double? Left { get; set; }
     public double? Top { get; set; }
     public double? Width { get; set; }
@@ -25,13 +24,13 @@ public partial class RouteMapWindow : Window
     private const double EdgeMargin = 6;
     private static readonly Brush SelectedLineBrush = Frozen(new SolidColorBrush(Color.FromRgb(255, 196, 58)));
     private static readonly Brush HaloBrush = Frozen(new SolidColorBrush(Color.FromArgb(220, 0, 0, 0)));
-    private static readonly Brush OtherLineBrush = Frozen(new SolidColorBrush(Color.FromArgb(150, 90, 170, 255)));
     private static readonly Brush StartBrush = Frozen(new SolidColorBrush(Color.FromRgb(70, 210, 90)));
 
     private readonly RouteMapData _data;
     private readonly RouteMapOverlaySettings _settings;
     private readonly Action _saveSettings;
     private readonly RouteMapToolbar _bar;
+    private readonly bool _tutorialPreview;
     private RouteMapChevronWindow? _previousChevronWindow;
     private RouteMapChevronWindow? _nextChevronWindow;
     private readonly Dictionary<string, BitmapImage> _images = new(StringComparer.OrdinalIgnoreCase);
@@ -43,32 +42,58 @@ public partial class RouteMapWindow : Window
     // The user's own window size while lines mode sizes the window to a calibrated in-game map.
     private Size? _freeSize;
 
-    public RouteMapWindow(RouteMapData data, RouteMapOverlaySettings settings, Action saveSettings)
+    public RouteMapWindow(RouteMapData data, RouteMapOverlaySettings settings, Action saveSettings, bool tutorialPreview = false)
     {
         InitializeComponent();
         _data = data;
         _settings = settings;
         _saveSettings = saveSettings;
+        _tutorialPreview = tutorialPreview;
         PreviousChevronImage.Source = RouteMapToolbar.LoadArt("CenterArrowLeft.png");
         NextChevronImage.Source = RouteMapToolbar.LoadArt("CenterArrowRight.png");
         ApplySavedBounds(settings);
         _bar = new RouteMapToolbar(this);
+        if (tutorialPreview)
+        {
+            var mapContent = (UIElement)Content;
+            var toolbarContent = (UIElement)_bar.Content;
+            Content = _bar.Content = null;
+            var preview = new Grid { Background = new SolidColorBrush(Color.FromRgb(0x49, 0x3A, 0x26)) };
+            preview.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(DefaultWidth) });
+            preview.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(380) });
+            preview.RowDefinitions.Add(new RowDefinition { Height = new GridLength(22) });
+            preview.RowDefinitions.Add(new RowDefinition());
+            preview.Children.Add(toolbarContent);
+            Grid.SetRow(mapContent, 1);
+            preview.Children.Add(mapContent);
+            Content = preview;
+            Width = DefaultWidth + 380;
+            Height = DefaultHeight + 22;
+            ResizeMode = ResizeMode.NoResize;
+        }
         LocationChanged += (_, _) => { PlaceBar(); PlaceChevronWindows(); };
         SizeChanged += (_, _) => PlaceBar();
         _bar.LocationChanged += (_, _) => FollowBar();
         Loaded += (_, _) =>
         {
             // WPF only accepts an owner that has already been shown.
-            _bar.Owner = this;
-            PlaceBar();
-            _bar.Show();
+            if (!_tutorialPreview)
+            {
+                _bar.Owner = this;
+                PlaceBar();
+                _bar.Show();
+            }
             TopmostGuard.Watch(this);
             TopmostGuard.Watch(_bar);
             Render();
         };
-        Closing += (_, _) => SaveBounds();
+        Closing += (_, _) => { if (!_tutorialPreview) SaveBounds(); };
+        Closed += (_, _) => { if (_tutorialPreview) _bar.Close(); };
         MouseEnter += (_, _) => { if (!_clickThrough) HoverEnter(this); };
     }
+
+    internal FrameworkElement? TutorialTarget(string name) =>
+        FindName(name) as FrameworkElement ?? _bar.FindName(name) as FrameworkElement;
 
     private static Brush Frozen(Brush brush)
     {
@@ -132,7 +157,7 @@ public partial class RouteMapWindow : Window
 
     private void PlaceBar()
     {
-        if (_syncingBar || _dragging || (!_bar.IsLoaded && !IsLoaded)) return;
+        if (_tutorialPreview || _syncingBar || _dragging || (!_bar.IsLoaded && !IsLoaded)) return;
         _syncingBar = true;
         try
         {
@@ -179,7 +204,7 @@ public partial class RouteMapWindow : Window
     // laid over their in-map spots while it is on.
     private void PlaceChevronWindows()
     {
-        if (!IsLoaded) return;
+        if (_tutorialPreview || !IsLoaded) return;
         if (!_clickThrough)
         {
             _previousChevronWindow?.Hide();
@@ -255,10 +280,8 @@ public partial class RouteMapWindow : Window
         Render();
     }
 
-    public void SetOptions(bool showOthers, bool clickThrough)
+    public void SetClickThrough(bool clickThrough)
     {
-        _settings.ShowOtherRoutes = showOthers;
-        _saveSettings();
         if (clickThrough != _clickThrough)
         {
             _clickThrough = clickThrough;
@@ -323,7 +346,7 @@ public partial class RouteMapWindow : Window
         Surface.Children.Clear();
         var page = _plan.Pages.Count > 0 ? _plan.Pages[_pageIndex] : null;
         if (page is not null && !page.Lines.Any(line => line.Count > 0)) page = null;
-        _bar.ShowState(_settings.LinesMode, _settings.ShowOtherRoutes, _clickThrough,
+        _bar.ShowState(_settings.LinesMode, _clickThrough,
             page is null ? "No route map" : string.IsNullOrEmpty(_plan.Title) ? $"{page.StartName} → {page.EndName}" : _plan.Title,
             _pageIndex, _plan.Pages.Count);
         NotesText.Text = page is null
@@ -389,9 +412,6 @@ public partial class RouteMapWindow : Window
             Surface.Children.Add(mapImage);
         }
 
-        if (_settings.ShowOtherRoutes)
-            foreach (var leg in _data.LegsInRegion(region.Id))
-                Surface.Children.Add(Line(leg.Points.Select(ToScreen), OtherLineBrush, 2));
         foreach (var line in page.Lines)
             Surface.Children.Add(Line(line.Select(ToScreen), HaloBrush, 7));
         foreach (var line in page.Lines)

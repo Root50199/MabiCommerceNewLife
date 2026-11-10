@@ -12,7 +12,7 @@ namespace MabiCommerceNewLife;
 public partial class InventoryWindow : Window
 {
     private const int WidthSegments = 4;
-    private const int HeightSegments = 23;
+    private const int HeightSegments = 24;
     internal const int MaxLetterSupply = 9_999;
     internal const int MaxLetterMarketValue = 100_000_000;
 
@@ -21,6 +21,7 @@ public partial class InventoryWindow : Window
     private readonly List<ModifierRow> _modifiers;
     private readonly List<EnchantSlot> _enchantSlots;
     private readonly List<RatingRow> _ratings;
+    private bool _loadingCover = true;
 
     public InventoryWindow(MainWindow owner)
     {
@@ -41,6 +42,9 @@ public partial class InventoryWindow : Window
         _letters = [.. GuaranteeLetters.All.Select(info =>
             new LetterRow(info, owner.GetGuaranteeLetterSupply(info.Kind), owner.GetGuaranteeLetterMarketValue(info.Kind)))];
         LetterItems.ItemsSource = _letters;
+        CoverHaveInput.Text = owner.ExpansionCoverSupply?.ToString("N0", CultureInfo.CurrentCulture) ?? string.Empty;
+        CoverValueInput.Text = owner.ExpansionCoverMarketValueGold?.ToString("N0", CultureInfo.CurrentCulture) ?? string.Empty;
+        _loadingCover = false;
 
         _modifiers = [];
         foreach (var group in CommerceModifiers.All.GroupBy(modifier => modifier.Group))
@@ -150,6 +154,40 @@ public partial class InventoryWindow : Window
     internal static bool TryParseSupply(string text, out int? supply) => TryParseWhole(text, MaxLetterSupply, out supply);
 
     internal static bool TryParseMarketValue(string text, out int? value) => TryParseWhole(text, MaxLetterMarketValue, out value);
+
+    private void CoverHave_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_loadingCover) return;
+        if (!TryParseSupply(CoverHaveInput.Text, out var supply))
+        {
+            CoverHaveInput.BorderBrush = Brushes.Red;
+            return;
+        }
+        CoverHaveInput.ClearValue(Border.BorderBrushProperty);
+        if (_owner.ExpansionCoverSupply != supply)
+            _owner.SetExpansionCoverInventory(supply, _owner.ExpansionCoverMarketValueGold);
+    }
+
+    private void CoverValue_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_loadingCover) return;
+        if (!TryParseMarketValue(CoverValueInput.Text, out var value))
+        {
+            CoverValueInput.BorderBrush = Brushes.Red;
+            return;
+        }
+        CoverValueInput.ClearValue(Border.BorderBrushProperty);
+        if (_owner.ExpansionCoverMarketValueGold != value)
+            _owner.SetExpansionCoverInventory(_owner.ExpansionCoverSupply, value);
+    }
+
+    private void CoverInput_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is not TextBox box) return;
+        box.Text = (box == CoverHaveInput ? _owner.ExpansionCoverSupply : _owner.ExpansionCoverMarketValueGold)
+            ?.ToString("N0", CultureInfo.CurrentCulture) ?? string.Empty;
+        box.ClearValue(Border.BorderBrushProperty);
+    }
 
     private void SaveLetter(LetterRow row)
     {
@@ -358,7 +396,8 @@ public partial class InventoryWindow : Window
         public string Tooltip =>
             $"{Info.Name}\nTrade and group goods: +{Info.NormalPercent}% of profit as Ducats{(Info.BoostsGold ? ", Gold" : string.Empty)} and EXP\n" +
             $"Barter goods: +{Info.BarterPercent}% of the selling price\nUsing it also grants {Info.DucatsGranted:N0} Ducats" +
-            (Info.BoostsGold ? string.Empty : "\nNo Gold bonus");
+            (Info.BoostsGold ? string.Empty : "\nNo Gold bonus") +
+            "\nHave: 0 to 9,999, or blank to not track.\nMarket Gold: 1 to 100,000,000. Blank or 0 disables automatic selection.";
     }
 
     private sealed class RatingRow(CommercePost post, int rating) : INotifyPropertyChanged
@@ -412,12 +451,12 @@ public partial class InventoryWindow : Window
 
         public string Name => Modifier?.Name ?? string.Empty;
         public string Effect => Modifier?.Effect ?? string.Empty;
-        public string? Tooltip => Modifier is null ? null : $"{Modifier.Name}: {Modifier.Effect}\n{Modifier.Detail}";
+        public string? Tooltip => Modifier is null ? null : $"{Modifier.Name}: {Modifier.Effect}\n{Modifier.Detail}" +
+            (Modifier.MaxCount > 1 ? $"\nWhole number from 0 to {Modifier.MaxCount}" : string.Empty);
         public Visibility HeaderVisibility => Modifier is null ? Visibility.Visible : Visibility.Collapsed;
         public Visibility RowVisibility => Modifier is null ? Visibility.Collapsed : Visibility.Visible;
         public Visibility CheckVisibility => Modifier is { MaxCount: 1 } ? Visibility.Visible : Visibility.Collapsed;
         public Visibility CountVisibility => Modifier is { MaxCount: > 1 } ? Visibility.Visible : Visibility.Collapsed;
-        public string CountTooltip => $"Whole number from 0 to {Modifier?.MaxCount ?? 0}";
         public string CountText => _count.ToString(CultureInfo.CurrentCulture);
         public bool IsChecked => _count > 0;
 

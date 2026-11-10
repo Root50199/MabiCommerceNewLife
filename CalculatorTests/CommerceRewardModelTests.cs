@@ -121,6 +121,49 @@ public sealed class CommerceRewardModelTests
     }
 
     [TestMethod]
+    public void DisabledAutoOverrideKeepsMarketPricedCandidatesAndModifiers()
+    {
+        var candidates = GuaranteeLetters.AutoCandidates(null, kind => kind == GuaranteeLetterKind.Imp ? 5_000 : 0);
+        CollectionAssert.AreEqual(new[] { GuaranteeLetterKind.None, GuaranteeLetterKind.Imp }, candidates);
+        var modifiers = Modifiers(letter: GuaranteeLetterKind.Imp, letterValue: 5_000m);
+        Assert.AreEqual(modifiers, GuaranteeLetters.AutoModifiers(modifiers, null));
+    }
+
+    [TestMethod]
+    public void NoLetterAutoOverrideExcludesEveryLetter()
+    {
+        CollectionAssert.AreEqual(new[] { GuaranteeLetterKind.None },
+            GuaranteeLetters.AutoCandidates(GuaranteeLetterKind.None, _ => 5_000));
+        var modifiers = GuaranteeLetters.AutoModifiers(Modifiers(letter: GuaranteeLetterKind.Imp, letterValue: 5_000m),
+            GuaranteeLetterKind.None);
+        var reward = CommerceRewardModel.Calculate([new RewardLine(10, 100m, 200m, 5)], false, modifiers);
+        Assert.IsFalse(reward.LetterApplied);
+        Assert.AreEqual(0m, reward.LetterCostGold);
+    }
+
+    [TestMethod]
+    public void ForcedAutoLetterIsOnlyCandidateAndFreeEvenWithoutValueOrSupply()
+    {
+        foreach (var letter in GuaranteeLetters.All)
+        {
+            CollectionAssert.AreEqual(new[] { letter.Kind }, GuaranteeLetters.AutoCandidates(letter.Kind, _ => null));
+            foreach (var barter in new[] { false, true })
+            {
+                var original = Modifiers(letter: GuaranteeLetterKind.None, supply: 0, letterValue: 5_000m);
+                var forced = GuaranteeLetters.AutoModifiers(original, letter.Kind);
+                var reward = CommerceRewardModel.Calculate([new RewardLine(10, 100m, 200m, 5)], barter, forced);
+                Assert.IsTrue(reward.LetterApplied);
+                Assert.AreEqual(letter.Kind, reward.Letter!.Kind);
+                Assert.AreEqual(0m, reward.LetterCostGold);
+                Assert.AreEqual(barter ? letter.BarterPercent * 20m : letter.NormalPercent * 10m, reward.LetterBonus);
+                Assert.AreEqual(original.MasteryRank, forced.MasteryRank);
+                Assert.AreEqual(original.GoldPerDucat, forced.GoldPerDucat);
+                Assert.AreEqual(5_000m, original.LetterMarketValue);
+            }
+        }
+    }
+
+    [TestMethod]
     public void MerchantRatingDiscountFollowsTheCreditLevelTable()
     {
         MerchantRatingLevel[] levels = [.. new[] { 0, 0, 0, 0, 1, 1, 2, 2, 3 }.Select((discount, index) =>
@@ -332,14 +375,21 @@ public sealed class CommerceRewardModelTests
     }
 
     [TestMethod]
-    public void DiscountsWidenOnlyTheLowerBuyPriceBound()
+    public void CatalogBuyBoundsOnlyRejectGrossErrorsAndStillAccountForDiscounts()
     {
         // Observed scan buy prices below the catalog minimum, explained by purchase discounts.
-        Assert.IsFalse(PurchasePriceRange.IsPlausibleBuyPrice(794m, 802, 915, 0m));
+        Assert.IsTrue(PurchasePriceRange.IsPlausibleBuyPrice(794m, 802, 915, 0m));
         Assert.IsTrue(PurchasePriceRange.IsPlausibleBuyPrice(794m, 802, 915, 1m));
-        Assert.IsFalse(PurchasePriceRange.IsPlausibleBuyPrice(7_620m, 7_775, 8_830, 1m));
+        Assert.IsTrue(PurchasePriceRange.IsPlausibleBuyPrice(7_620m, 7_775, 8_830, 1m));
         Assert.IsTrue(PurchasePriceRange.IsPlausibleBuyPrice(7_620m, 7_775, 8_830, 2m));
-        Assert.IsFalse(PurchasePriceRange.IsPlausibleBuyPrice(9_000m, 7_775, 8_830, 10m));
+        Assert.IsTrue(PurchasePriceRange.IsPlausibleBuyPrice(9_000m, 7_775, 8_830, 10m));
+        Assert.IsTrue(PurchasePriceRange.IsPlausibleBuyPrice(645m, 655, 823, 0m));
+        Assert.IsTrue(PurchasePriceRange.IsPlausibleBuyPrice(199m, 802, 915, 1m));
+        Assert.IsFalse(PurchasePriceRange.IsPlausibleBuyPrice(199m, 802, 915, 0m));
+        Assert.IsTrue(PurchasePriceRange.IsPlausibleBuyPrice(3660m, 802, 915, 0m));
+        Assert.IsFalse(PurchasePriceRange.IsPlausibleBuyPrice(3661m, 802, 915, 0m));
+        Assert.IsFalse(PurchasePriceRange.IsPlausibleBuyPrice(64m, 655, 823, 0m));
+        Assert.IsFalse(PurchasePriceRange.IsPlausibleBuyPrice(6450m, 655, 823, 0m));
         Assert.IsFalse(PurchasePriceRange.IsPlausibleBuyPrice(0m, 7_775, 8_830, 3m));
     }
 }

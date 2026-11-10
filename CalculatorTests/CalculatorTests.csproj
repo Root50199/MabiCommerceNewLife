@@ -6,10 +6,17 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\src\Community\*.cs" Link="Community\%(Filename)%(Extension)" />
+    <Compile Include="..\src\Updates\*.cs" Link="Updates\%(Filename)%(Extension)" />
+    <Compile Include="..\src\Help\UserGuide.cs" Link="UserGuide.cs" />
+    <Content Include="..\Data\UserGuide\*.png" Link="Data\UserGuide\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\src\Views\MainWindow.xaml;..\src\Views\InventoryWindow.xaml;..\src\Views\BarterMaterialsWindow.xaml;..\src\Views\RouteMapWindow.xaml;..\src\Views\RouteMapToolbar.xaml;..\src\Views\TradeHistoryWindow.xaml" Link="GuideTargets\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\src\Views\AppUpdateWindow.xaml" Link="GuideTargets\AppUpdateWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\src\Planning\GameIds.cs" Link="GameIds.cs" />
     <Compile Include="..\src\Planning\ProfitCalculator.cs" Link="ProfitCalculator.cs" />
     <Compile Include="..\src\Planning\CommerceRewards.cs" Link="CommerceRewards.cs" />
     <Compile Include="..\src\Planning\PurchaseOptimizer.cs" Link="PurchaseOptimizer.cs" />
+    <Compile Include="..\src\Planning\BarterRouteOrder.cs" Link="BarterRouteOrder.cs" />
     <Compile Include="..\src\Routes\LegacyRouteEstimates.cs" Link="LegacyRouteEstimates.cs" />
     <Compile Include="..\src\Routes\ShipScheduleEstimator.cs" Link="ShipScheduleEstimator.cs" />
     <Compile Include="..\src\Routes\RouteMapData.cs" Link="RouteMapData.cs" />
@@ -22,6 +29,7 @@
     <Content Include="..\Data\default-item-values.json" Link="default-item-values.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\src\Ocr\PriceListOcrParser.cs" Link="PriceListOcrParser.cs" />
     <Compile Include="..\src\Ocr\PriceListOcrService.cs" Link="PriceListOcrService.cs" />
+    <Compile Include="..\src\Ocr\OcrScanRetry.cs" Link="OcrScanRetry.cs" />
     <Content Include="..\Data\regional-route-distances.json" Link="regional-route-distances.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\Data\ship-schedules.json" Link="ship-schedules.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\Data\RouteMaps\route-maps.json" Link="route-maps.json" CopyToOutputDirectory="PreserveNewest" />

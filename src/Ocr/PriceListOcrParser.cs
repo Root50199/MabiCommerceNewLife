@@ -13,6 +13,7 @@ public sealed class PriceListOcrCandidate
     public string SourceLine { get; init; } = string.Empty;
     public string PriceSourceText { get; init; } = "OCR sale price";
     public bool IsCrossChecked { get; init; }
+    public decimal? ObservedProfit { get; init; }
     public string ConfidenceText => $"{Confidence:N1}%";
 }
 
@@ -43,13 +44,33 @@ public sealed record AnchoredPriceListOcrResult(
     OcrAnchorMatch Anchor,
     IReadOnlyList<OcrTownRow> TownRows,
     IReadOnlyList<OcrPriceCellRead> PriceCells,
-    bool IsSaleOnlyTable = false);
+    bool IsSaleOnlyTable = false,
+    OcrStockRead? Stock = null);
 
 public sealed record OcrSourcePrice(decimal Price, float Confidence, string SourceText);
+
+public sealed record OcrStockRead(int? Count, bool IsReliable, string SourceText);
 
 public static class PriceListOcrParser
 {
     private static readonly Regex PricePattern = new(@"(?<![A-Za-z])\d[\d,.]*(?![A-Za-z])", RegexOptions.Compiled);
+
+    public static OcrStockRead ParseStockReads(IEnumerable<string> readings)
+    {
+        ArgumentNullException.ThrowIfNull(readings);
+        var reads = readings.Select(text => text.Trim()).ToArray();
+        var values = reads.Select(text =>
+        {
+            if (!Regex.IsMatch(text, @"^(?:\d+|\d{1,3}(?:,\d{3})+|\d{1,3}(?:\.\d{3})+)$")) return (int?)null;
+            return int.TryParse(text.Replace(",", "").Replace(".", ""), NumberStyles.None,
+                CultureInfo.InvariantCulture, out var count) ? count : (int?)null;
+        }).ToArray();
+        var primary = values.FirstOrDefault(value => value.HasValue);
+        var reliable = reads.Length >= 4 && primary.HasValue && values.All(value => value == primary);
+        return new OcrStockRead(primary, reliable,
+            $"Inventory reads: {string.Join(" | ", reads.Select(text => text.Length == 0 ? "(blank)" : text))}" +
+            (reliable ? " (all agree)" : " (review required)"));
+    }
 
     public static OcrSourcePrice? ParseSourcePrice(string metadataText, float confidence)
     {
@@ -100,9 +121,23 @@ public static class PriceListOcrParser
                 .OrderByDescending(item => Normalize(item.PostName).Length)
                 .FirstOrDefault();
             if (destination.PostId == 0) continue;
-            var top = line.Words.Min(word => word.Top);
-            var bottom = line.Words.Max(word => word.Bottom);
-            rows.Add(new OcrTownRow(destination.PostId, destination.PostName, (top + bottom) / 2, line.Text));
+            var name = Normalize(destination.PostName);
+            var nameWords = new List<OcrPriceWord>();
+            var recognizedName = string.Empty;
+            foreach (var word in line.Words)
+            {
+                var normalizedWord = Normalize(word.Text);
+                if (normalizedWord.Length == 0) continue;
+                nameWords.Add(word);
+                recognizedName += normalizedWord;
+                if (recognizedName.Length >= name.Length) break;
+            }
+            if (recognizedName != name) continue;
+            // Frame/scrollbar marks can share the OCR line but must not shift its digit-row center.
+            var top = nameWords.Min(word => word.Top);
+            var bottom = nameWords.Max(word => word.Bottom);
+            rows.Add(new OcrTownRow(destination.PostId, destination.PostName, (top + bottom) / 2,
+                string.Join(" ", nameWords.Select(word => word.Text.Trim().Trim('(', ')', '{', '}')))));
         }
         return rows.DistinctBy(row => row.PostId).ToArray();
     }
@@ -114,6 +149,17 @@ public static class PriceListOcrParser
         ArgumentNullException.ThrowIfNull(destinationPostIds);
         var allowed = destinationPostIds.ToHashSet();
         return townRows.Where(row => row.PostId != sourcePostId && allowed.Contains(row.PostId)).ToArray();
+    }
+
+    public static IReadOnlyList<int> MissingDestinationEntries(IEnumerable<int> expectedPostIds,
+        IEnumerable<OcrTownRow> townRows, IEnumerable<PriceListOcrCandidate> candidates)
+    {
+        ArgumentNullException.ThrowIfNull(expectedPostIds);
+        ArgumentNullException.ThrowIfNull(townRows);
+        ArgumentNullException.ThrowIfNull(candidates);
+        var detected = townRows.Select(row => row.PostId).ToHashSet();
+        var priced = candidates.Where(candidate => candidate.Price > 0).Select(candidate => candidate.PostId).ToHashSet();
+        return expectedPostIds.Distinct().Where(id => !detected.Contains(id) || !priced.Contains(id)).ToArray();
     }
 
     // Barter price lists show only a sale column, so there is no profit to cross-check against. The OCR
@@ -161,17 +207,13 @@ public static class PriceListOcrParser
         return candidates;
     }
 
-    // Barter sale price = hidden base value x the client's per-post-pair weight. Owner captures matched this
-    // within 0.3% at stable towns, while Tara (every capture so far) and recently sold-into towns read up to ~6% low;
-    // a 9-vs-8 hundreds misread is only ~2% either way, so the low side stays loose. Barter cannot be
-    // discounted. A misread leading or middle digit breaks the model, so such rows lose their cross-check.
-    // Larger drops (owner captures: Tara -12.5% and -15.0%) are accepted up to 20% for agreeing reads. Demand
-    // lowers the sale price, not the base value, so a dropped town's own implied base can fall below the game's
-    // minimum (Wooden Craft Tara: 3,355 vs 3,400). Wrong leading digits and higher-than-model prices stay strict.
+    // Barter sale price = hidden base value x the client's per-post-pair weight. Live prices swing around
+    // that reference; owner-approved limits are -25% / +15%, with OCR agreement still required.
+    // Historic catalog limits only reject gross median-base errors (quarter-minimum to four times maximum).
+    // Digit misreads inside the allowed swings cannot be ruled out by this model.
     public const decimal BarterValueLowTolerance = 0.08m;
-    public const decimal BarterValueHighTolerance = 0.015m;
-    public const decimal BarterRangeTolerance = 0.01m;
-    public const decimal BarterDemandDropTolerance = 0.20m;
+    public const decimal BarterValueHighTolerance = 0.15m;
+    public const decimal BarterDemandDropTolerance = 0.25m;
 
     public static IReadOnlyList<PriceListOcrCandidate> ApplyBarterValueCheck(
         IReadOnlyList<PriceListOcrCandidate> candidates, IReadOnlyDictionary<int, decimal> destinationWeights,
@@ -188,8 +230,7 @@ public static class PriceListOcrParser
         var baseValue = impliedBases.Length % 2 == 1
             ? impliedBases[impliedBases.Length / 2]
             : (impliedBases[impliedBases.Length / 2 - 1] + impliedBases[impliedBases.Length / 2]) / 2m;
-        var baseInRange = baseValue >= minBaseValue * (1 - BarterRangeTolerance) &&
-            baseValue <= maxBaseValue * (1 + BarterRangeTolerance);
+        var baseInRange = baseValue >= minBaseValue / 4m && baseValue <= maxBaseValue * 4m;
 
         return candidates.Select(item =>
         {
@@ -252,6 +293,7 @@ public static class PriceListOcrParser
                     Confidence = Math.Min(cell.SaleConfidence, cell.ProfitConfidence),
                     SourceLine = $"{town.SourceLine} sale {cell.SalePriceText}; profit {cell.ProfitText}",
                     PriceSourceText = "OCR sale price cross-checked with profit",
+                    ObservedProfit = profit,
                     IsCrossChecked = true
                 });
                 continue;
@@ -272,6 +314,7 @@ public static class PriceListOcrParser
                     Confidence = Math.Min(cell.SaleConfidence, cell.ProfitConfidence),
                     SourceLine = $"{town.SourceLine} sale {cell.SalePriceText}; profit {cell.ProfitText}",
                     PriceSourceText = $"OCR sale price cross-checked with profit ({(salePrice > buyPrice ? "profit" : "loss")} {Math.Abs(salePrice - buyPrice):N0} misread (dropped 1s or a 7 read as 9))",
+                    ObservedProfit = profit,
                     IsCrossChecked = true
                 });
                 continue;
