@@ -103,19 +103,7 @@ public partial class MainWindow
             SetStatus("Enable Screen reader mode before enabling scanned price sharing.", true);
             return;
         }
-        if (MessageBox.Show(this,
-            "Enable sending and receiving scanned commerce price and Inventory supply data?\n\n" +
-            "No character or account data is transmitted or recorded. No screenshots or raw OCR are sent.\n\n" +
-            "IP logs are retained for 30 days. New observations lose their random installation links after 30 days. Unused expired installation credentials are deleted. Price/stock history remains indefinitely.\n\n" +
-            "Turning sharing off stops transfers and keeps the newest applied values saved locally; it does not erase stored history.\n\n" +
-            "Use the refresh button on the town list to retrieve remote prices (1 minute cooldown).\n\n" +
-            "Fresh automatically validated scans and complete scans you confirm in OCR review are uploaded. Edited source, stock and price lines are flagged manual; unchanged lines are reviewed OCR. Reviewed prices can update other users' planners. No background polling or offline upload queue.\n\n" +
-            $"Current backend: {CommunityClient.DefaultEndpoint}\n" +
-            (CommunityClient.DefaultEndpoint == CommunityClient.ProductionEndpoint
-                ? "This is the online community service hosted by Cloudflare; your connection IP is recorded privately under the retention policy above.\n\n"
-                : "This is the local development service; no observations are sent to the online community service.\n\n") +
-            "Credentials stay in memory. This choice is saved for this backend and sharing reconnects on later launches until you turn it off.",
-            "Scanned price sharing", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+        if (new SharingConsentWindow(this).ShowDialog() != true)
         {
             CommunitySharingCheckBox.IsChecked = false;
             return;

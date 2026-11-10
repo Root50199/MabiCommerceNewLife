@@ -148,7 +148,7 @@ public partial class MainWindow : Window
         TradingPostFrameImage.Source = LoadImage("Data/CommerceUI/TradingPostFrameCustom.png");
         SettingsButtonImage.Source = LoadImage("Data/CommerceUI/Settings.png");
         ManualButtonImage.Source = LoadImage("Data/CommerceUI/BookIcon.png");
-        Resources["SettingsMenuBackgroundArt"] = BuildSettingsMenuBackground(13);
+        Resources["SettingsMenuBackgroundArt"] = BuildSettingsMenuBackground(16);
         Resources["BracketTopLeftArt"] = LoadImage("Data/CommerceUI/BracketTopLeft.png");
         Resources["BracketTopRightArt"] = LoadImage("Data/CommerceUI/BracketTopRight.png");
         Resources["BracketBottomLeftArt"] = LoadImage("Data/CommerceUI/BracketBottomLeft.png");
