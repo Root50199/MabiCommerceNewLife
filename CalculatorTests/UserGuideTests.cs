@@ -8,6 +8,21 @@ namespace CalculatorTests;
 public sealed class UserGuideTests
 {
     [TestMethod]
+    public void PendingUploadPromptIsThemedAndCancelIsTheSafeDefault()
+    {
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var document = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", "CommunityPendingWindow.xaml"));
+        Assert.AreEqual("None", (string?)document.Root!.Attribute("WindowStyle"));
+        var buttons = document.Descendants().Where(element => element.Name.LocalName == "Button").ToArray();
+        CollectionAssert.AreEqual(new[] { "Upload and close", "Discard", "Cancel" },
+            buttons.Select(button => (string)button.Attribute("Content")!).ToArray());
+        Assert.IsTrue(buttons.All(button => (string?)button.Attribute("Style") == "{DynamicResource CommerceActionButton}"));
+        var cancel = buttons.Single(button => (string?)button.Attribute(x + "Name") == "CancelButton");
+        Assert.AreEqual("True", (string?)cancel.Attribute("IsDefault"));
+        Assert.AreEqual("True", (string?)cancel.Attribute("IsCancel"));
+    }
+
+    [TestMethod]
     public void SharingStatusHasBottomLeftDotAndThemedScrollableRetryPanel()
     {
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";

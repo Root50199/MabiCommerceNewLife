@@ -5,6 +5,12 @@ public static class CommunityScanBuilder
     public static CommunityScan BuildReviewed(CommunityTicket ticket, string mode, int productId, int sourcePostId,
         decimal? sourcePrice, int? stock, IReadOnlyList<PriceListOcrCandidate> candidates,
         IReadOnlyCollection<int> expectedPostIds, decimal purchaseDiscountPercent, CommunityReview review)
+        => BuildReviewed(ticket.ScanId, mode, productId, sourcePostId, sourcePrice, stock, candidates,
+            expectedPostIds, purchaseDiscountPercent, review);
+
+    public static CommunityScan BuildReviewed(string scanId, string mode, int productId, int sourcePostId,
+        decimal? sourcePrice, int? stock, IReadOnlyList<PriceListOcrCandidate> candidates,
+        IReadOnlyCollection<int> expectedPostIds, decimal purchaseDiscountPercent, CommunityReview review)
     {
         if (mode is not ("trade" or "group" or "barter") || productId <= 0 || sourcePostId <= 0)
             throw new InvalidOperationException("Not shared: invalid reviewed goods identifiers.");
@@ -33,11 +39,18 @@ public static class CommunityScanBuilder
             throw new InvalidOperationException("Not shared: invalid review provenance.");
         var discount = mode == "barter" ? 0 : purchaseDiscountPercent;
         var normalized = source is null ? null : (int?)CommunityPurchasePrice.Normalize(source.Value, discount);
-        return new CommunityScan(ticket.ScanId, mode, productId, sourcePostId, normalized, stock.Value,
+        return new CommunityScan(scanId, mode, productId, sourcePostId, normalized, stock.Value,
             prices, "normalized-v1", source, discount, review);
     }
 
     public static CommunityScan Build(CommunityTicket ticket, string mode, int productId, int sourcePostId,
+        bool autoAccepted, OcrSourcePrice? sourcePrice, OcrStockRead? stock,
+        IReadOnlyList<PriceListOcrCandidate> candidates, IReadOnlyCollection<int> expectedPostIds,
+        decimal purchaseDiscountPercent = 0)
+        => Build(ticket.ScanId, mode, productId, sourcePostId, autoAccepted, sourcePrice, stock, candidates,
+            expectedPostIds, purchaseDiscountPercent);
+
+    public static CommunityScan Build(string scanId, string mode, int productId, int sourcePostId,
         bool autoAccepted, OcrSourcePrice? sourcePrice, OcrStockRead? stock,
         IReadOnlyList<PriceListOcrCandidate> candidates, IReadOnlyCollection<int> expectedPostIds,
         decimal purchaseDiscountPercent = 0)
@@ -69,7 +82,7 @@ public static class CommunityScanBuilder
             throw new InvalidOperationException("Not shared: incomplete or duplicate destination list.");
         var discount = mode == "barter" ? 0 : purchaseDiscountPercent;
         var normalized = source is null ? null : (int?)CommunityPurchasePrice.Normalize(source.Value, discount);
-        return new CommunityScan(ticket.ScanId, mode, productId, sourcePostId, normalized,
+        return new CommunityScan(scanId, mode, productId, sourcePostId, normalized,
             stock.Count.Value, prices, "normalized-v1", source, discount);
     }
 

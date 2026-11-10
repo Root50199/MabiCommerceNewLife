@@ -31,7 +31,11 @@ public partial class MainWindow
         RefreshCommunityHealth();
     }
 
-    private void CommunityHealthy() => SetCommunityHealth(CommunityHealth.Healthy, "Price sharing connected.");
+    private void CommunityHealthy()
+    {
+        if (!_communityScanQueue.HasFailures)
+            SetCommunityHealth(CommunityHealth.Healthy, "Price sharing connected.");
+    }
 
     private void CommunityFailed(Exception exception, bool refresh = false)
     {
@@ -70,9 +74,10 @@ public partial class MainWindow
             (_communityAutoRetry ? "; retrying automatically." : " before retrying.")
         : _communityAutoRetry ? "Retrying automatically." : "Manual retry available.";
 
-    private bool CanRetryCommunity => _communityHealth is CommunityHealth.Waiting or CommunityHealth.Failed &&
+    private bool CanRetryCommunity => (_communityHealth is CommunityHealth.Waiting or CommunityHealth.Failed ||
+        _communityScanQueue.HasFailures) &&
         !_helpClosing && _plannerPreferences.CommunitySharingEnabled &&
-        !_communityConnecting && !_communityChecking && !_communityRefreshGate.IsBusy &&
+        !_communityConnecting && !_communityChecking && !_communityRefreshGate.IsBusy && !_communityBatchUploading &&
         !_communityAutoRetry && CommunityManualWait == TimeSpan.Zero;
 
     private void RefreshCommunityHealth()
@@ -86,6 +91,7 @@ public partial class MainWindow
             _ => Brushes.Gray
         };
         var text = _communityHealthMessage;
+        if (_communityScanQueue.Count > 0) text += $" {CommunityQueueSummary} Click for details.";
         if (_communityHealth is CommunityHealth.Waiting or CommunityHealth.Failed)
             text += $" {CommunityWaitDescription} Click for details.";
         CommunityStatusButton.ToolTip = text;
@@ -94,9 +100,14 @@ public partial class MainWindow
 
     internal (string Details, string Wait, bool CanRetry) CommunityIssueDetails()
     {
-        if (_communityHealth is CommunityHealth.Healthy or CommunityHealth.Off)
+        if (_communityHealth is CommunityHealth.Healthy or CommunityHealth.Off && _communityScanQueue.Count == 0)
             return (_communityHealthMessage, "", false);
+        if (_communityHealth == CommunityHealth.Healthy && !_communityScanQueue.HasFailures)
+            return ($"{CommunityQueueSummary}\n\nPrices apply locally immediately. Each outpost/mode sends one batch " +
+                "after 60s idle, at four minutes, or when all goods are queued. New accepted rescans replace earlier ones.\n\n" +
+                "Pending uploads live only in memory. Turning sharing OFF discards them; closing asks first.", "", false);
         var details = _communityIssue is null ? _communityHealthMessage : CommunityNetworkError(_communityIssue);
+        if (_communityScanQueue.Count > 0) details += $"\n\n{CommunityQueueSummary}";
         details += "\n\n" + (_communityIssue switch
         {
             CommunityApiException { StatusCode: HttpStatusCode.TooManyRequests } => _communityRetryAt is null
@@ -111,16 +122,22 @@ public partial class MainWindow
             _ => "Check your connection and service availability, then retry."
         });
         details += "\n\nTurn sharing OFF in Settings to cancel.";
-        details += "\n\nLocal planning still works. Scans are not queued or replayed; scan again after recovery.";
+        details += "\n\nLocal planning still works. Accepted scans wait in memory only. Failed batches need manual retry; OFF discards them. Closing asks before discarding.";
         return (details, CommunityWaitDescription, CanRetryCommunity);
     }
 
     private async void CommunityStatus_Click(object sender, RoutedEventArgs e)
     {
-        if (_communityHealth is not (CommunityHealth.Waiting or CommunityHealth.Failed)) return;
+        if (_communityHealth is not (CommunityHealth.Waiting or CommunityHealth.Failed) && _communityScanQueue.Count == 0) return;
         if (new CommunityStatusWindow(this).ShowDialog() != true || !CanRetryCommunity) return;
-        if (_communityIssue is CommunityApiException { StatusCode: HttpStatusCode.Unauthorized })
+        if (_communityIssue is CommunityApiException { StatusCode: HttpStatusCode.Unauthorized } &&
+            _communityScanQueue.Count == 0)
             StopCommunitySharing();
+        if (_communityScanQueue.HasFailures)
+        {
+            await FlushCommunityBatchesAsync(force: true);
+            return;
+        }
         if (!CommunitySharingEnabled)
         {
             await ConnectCommunitySharingAsync();
@@ -141,7 +158,7 @@ public partial class MainWindow
             if (!_helpClosing && ReferenceEquals(_communitySharing, sharing))
             {
                 CommunityHealthy();
-                SetStatus("Price sharing reachable. Scan again to share; previous scans were not replayed.");
+                SetStatus("Price sharing reachable. Pending batches remain available; scans not accepted for sharing stay local.");
             }
         }
         catch (Exception exception) when (IsCommunityError(exception))

@@ -24,7 +24,7 @@ public partial class MainWindow
     private string? _communityEndpoint;
     private const int CommunityBuyKey = int.MinValue;
     private const int CommunityStockKey = int.MinValue + 1;
-    private const string CommunitySharingConsentVersion = "persistent-installation-v1";
+    private const string CommunitySharingConsentVersion = "outpost-batches-v1";
 
     private CommunityMarketValue CommunityValue(int productId, int postId, decimal currentValue)
     {
@@ -60,7 +60,11 @@ public partial class MainWindow
     private void InitializeCommunitySharing()
     {
         CommunitySharingInfo.Message += $"\n\nCurrent backend: {CommunityClient.DefaultEndpoint}";
-        _communityRefreshTimer.Tick += (_, _) => RefreshCommunityButtonState();
+        _communityRefreshTimer.Tick += async (_, _) =>
+        {
+            RefreshCommunityButtonState();
+            await FlushCommunityBatchesAsync();
+        };
         _communityRefreshTimer.Start();
         RefreshCommunityButtonState();
         Loaded += RestoreCommunitySharing;
@@ -167,6 +171,8 @@ public partial class MainWindow
 
     private void StopCommunitySharing()
     {
+        var discarded = _communityScanQueue.Count;
+        _communityScanQueue.Clear();
         var sharing = _communitySharing;
         _communitySharing = null;
         _communityConnecting = false;
@@ -178,6 +184,7 @@ public partial class MainWindow
         if (!_helpClosing)
         {
             RefreshCommunityButtonState();
+            if (discarded > 0) SetStatus($"Discarded {discarded} pending shared goods. Applied local prices were kept.");
         }
     }
 
@@ -248,80 +255,46 @@ public partial class MainWindow
         }
     }
 
-    private async Task<CommunityTicket?> BeginCommunityScanAsync(CancellationToken cancellationToken)
+    private Guid? BeginCommunityScan()
     {
-        if (!CommunitySharingEnabled || _communitySharing is not { } sharing || _communityClient is not { } client) return null;
-        if (CommunityWaitRemaining > TimeSpan.Zero || _communityAutoRetry || _communityChecking)
-        {
-            SetStatus("Scan remains local while sharing waits. Click the bottom-left status dot for details.");
-            return null;
-        }
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, sharing.Token);
-        try
-        {
-            var ticket = await CommunityRetry.RunAsync(() => client.BeginScanAsync(linked.Token), false, false,
-                CommunityRetryWaiting, linked.Token);
-            linked.Token.ThrowIfCancellationRequested();
-            CommunityHealthy();
-            return ticket;
-        }
-        catch (Exception exception) when (IsCommunityError(exception))
-        {
-            if (!linked.IsCancellationRequested && !_helpClosing && ReferenceEquals(_communitySharing, sharing))
-            {
-                CommunityFailed(exception);
-                SetStatus($"Scan remains local: price sharing ticket failed. {CommunityNetworkError(exception)}", true);
-            }
-            return null;
-        }
-        finally
-        {
-            if (ReferenceEquals(_communitySharing, sharing))
-            {
-                _communityAutoRetry = false;
-                if (!_helpClosing) RefreshCommunityButtonState();
-            }
-        }
+        if (!CommunitySharingEnabled || _communityClient is not { } client) return null;
+        if (SelectedProduct is { } product)
+            _communityScanQueue.ScanStarted(new CommunityOutpost(ModeOf(product).ToString().ToLowerInvariant(), product.PostId));
+        return client.ConnectedSession;
     }
 
     private async Task SharePriceListScanAsync(PriceListScanRead read, AcceptedPriceListScan accepted,
-        CommunityTicket? ticket, CancellationToken cancellationToken)
+        Guid? session, CancellationToken cancellationToken)
     {
-        if (ticket is null || !CommunitySharingEnabled || _communitySharing is not { } sharing ||
-            _communityClient is not { } client) return;
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, sharing.Token);
+        if (session is null || !CommunitySharingEnabled || _communitySharing is not { } sharing ||
+            _communityClient?.ConnectedSession != session) return;
         try
         {
-            if (!client.IsCurrentSession(ticket)) return;
+            cancellationToken.ThrowIfCancellationRequested();
             var mode = ModeOf(read.Product).ToString().ToLowerInvariant();
             var expected = read.ProductQuotes.Where(q => q.PostId != SmugglerDestinationId).Select(q => q.PostId).ToArray();
+            var scanId = Guid.NewGuid().ToString();
             var scan = accepted.Review is { } review
-                ? CommunityScanBuilder.BuildReviewed(ticket, mode,
+                ? CommunityScanBuilder.BuildReviewed(scanId, mode,
                     read.Product.IsBarter ? read.Product.CatalogId : read.Product.Id, read.SourcePost.Id,
                     accepted.SourcePrice, accepted.Stock, accepted.Candidates, expected, read.PurchaseDiscountPercent, review)
-                : CommunityScanBuilder.Build(ticket, mode,
+                : CommunityScanBuilder.Build(scanId, mode,
                 read.Product.IsBarter ? read.Product.CatalogId : read.Product.Id, read.SourcePost.Id,
                 read.CanAutoAccept, read.SourcePrice, read.Stock, read.Candidates,
                 expected,
                 read.PurchaseDiscountPercent);
-            // Validate the review first, then renew its ticket within the same opted-in session.
-            if (accepted.Review is not null)
-            {
-                ticket = await BeginCommunityScanAsync(linked.Token);
-                if (ticket is null) return;
-                scan = scan with { ScanId = ticket.ScanId };
-            }
-            var receipt = await client.UploadAsync(ticket, scan, linked.Token);
-            if (!_helpClosing && ReferenceEquals(_communitySharing, sharing))
-            {
-                CommunityHealthy();
-                SetStatus($"Scan shared: {scan.Prices.Count} prices, stock {scan.Stock:N0} (observation {receipt.Sequence})" +
-                    (scan.Review is { } verified ? $"; reviewed, {verified.ManualPostIds.Count} manually edited lines." : "."));
-            }
+            var products = _products.Where(product => !product.IsInactiveRotation && product.PostId == read.SourcePost.Id &&
+                ModeOf(product) == ModeOf(read.Product))
+                .Select(product => product.IsBarter ? product.CatalogId : product.Id).Distinct().ToArray();
+            _communityScanQueue.Enqueue(scan, products);
+            RefreshCommunityHealth();
+            SetStatus($"Scan saved locally; {_communityScanQueue.Count} goods pending sharing. " +
+                "Uploads after 60s idle, at 4 minutes, or when this outpost is complete.");
+            await FlushCommunityBatchesAsync();
         }
         catch (Exception exception) when (IsCommunityError(exception))
         {
-            if (!linked.IsCancellationRequested && !_helpClosing && ReferenceEquals(_communitySharing, sharing))
+            if (!cancellationToken.IsCancellationRequested && !_helpClosing && ReferenceEquals(_communitySharing, sharing))
             {
                 CommunityFailed(exception);
                 SetStatus($"Scan remains local; not shared: {CommunityNetworkError(exception)}", true);

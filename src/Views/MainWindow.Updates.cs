@@ -19,7 +19,6 @@ public partial class MainWindow
         CheckUpdatesOnOpenCheckBox.IsChecked = _plannerPreferences.CheckUpdatesOnOpen;
         UpdateInfo.Message += $"\n\nCurrent version: {CurrentAppVersion}";
         ContentRendered += CheckUpdatesOnOpen;
-        Closing += (_, _) => _updateLifetime.Cancel();
     }
 
     private void RepositoryLink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
@@ -73,6 +72,7 @@ public partial class MainWindow
             if (!ConfirmAppUpdate(release)) return;
             if (_scanCancellation is not null || _autoCalculationCancellation is not null)
                 throw new InvalidOperationException("Finish or cancel the current scan/calculation before installing an update.");
+            if (!await ConfirmPendingCommunityUploadsAsync()) return;
             IsEnabled = false;
             workspace = Path.Combine(Path.GetTempPath(), "MabiCommerceUpdates", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(workspace);

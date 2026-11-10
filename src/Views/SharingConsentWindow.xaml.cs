@@ -15,8 +15,13 @@ public partial class SharingConsentWindow : Window
         BackgroundArt.Source = MainWindow.BuildSettingsMenuBackground(10, 4);
         PrivacyDetailsText.Text =
             $"Service: {CommunityClient.DefaultEndpoint} (Cloudflare).\n\n" +
-            "Automatically checked scans and complete reviews upload; edited values are marked manual. " +
-            "Refresh receives and applies prices (one-minute cooldown). No background polling or offline upload queue.\n\n" +
+            "Automatically checked scans and complete reviews apply locally immediately; edited values are marked manual. " +
+            "Structured scans wait in memory per outpost and mode, newest accepted scan per good. " +
+            "Upload after 60 seconds without scanning that outpost, at four minutes from the first queued scan, or when all goods are queued. " +
+            "One bounded batch request shares the outpost; timestamps are server receipt times, not exact capture times. " +
+            "Failed batches stay in memory for manual retry using the same deduplication IDs; no automatic upload replay or disk queue. " +
+            "OFF discards pending uploads. Closing or updating asks to upload, discard, or cancel. " +
+            "Refresh receives and applies prices (one-minute cooldown). No background price polling.\n\n" +
             "Connection IP logs and new observations' random installation links expire after 30 days, " +
             "with deletion at the next successful cleanup. Pre-policy links are exempt. " +
             "Unused expired credentials are deleted. Price/stock history remains indefinitely; " +
