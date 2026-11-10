@@ -111,6 +111,7 @@ public sealed class OcrScanRetryTests
     public void ObstructingTownOrBarterPriceMakesExpectedEntryMissing(bool coverPrice)
     {
         var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Ocr", "Client_BarterFineSandOasis.png");
+        if (!File.Exists(path)) Assert.Inconclusive("Owner's local OCR fixture is unavailable.");
         var anchor = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", "Ocr", "PriceListAnchor.png"));
         var tessdata = Path.Combine(AppContext.BaseDirectory, "Data", "Ocr", "tessdata_best");
         var original = PriceListOcrService.RecognizeAnchoredPriceList(File.ReadAllBytes(path),
