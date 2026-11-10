@@ -541,8 +541,8 @@
                 <Image x:Name="ManualButtonImage" Width="22" Height="22" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Popup x:Name="SettingsPopup" Placement="Bottom" HorizontalOffset="-246" VerticalOffset="2" StaysOpen="True" AllowsTransparency="True" PopupAnimation="Fade">
-                <Canvas x:Name="SettingsMenuCanvas" Width="270" Height="592" ClipToBounds="True">
-                    <Image Canvas.Left="0" Canvas.Top="0" Source="{DynamicResource SettingsMenuBackgroundArt}" Width="270" Height="592" Stretch="Fill" />
+                <Canvas x:Name="SettingsMenuCanvas" Width="270" Height="602" ClipToBounds="True">
+                    <Image Canvas.Left="0" Canvas.Top="0" Source="{DynamicResource SettingsMenuBackgroundArt}" Width="270" Height="602" Stretch="Fill" />
                     <Grid Canvas.Left="12" Canvas.Top="4" Width="252" Height="40">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="18"/></Grid.ColumnDefinitions>
                         <Thumb Grid.ColumnSpan="2" Background="Transparent" DragDelta="SettingsPopup_DragDelta">

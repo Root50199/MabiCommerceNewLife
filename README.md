@@ -141,6 +141,16 @@ For DNS errors check internet/DNS; for TLS errors check Windows date/time,
 trusted certificates and HTTPS-inspecting antivirus/proxies. Managed networks
 may require administrator help. The app does not inspect or modify firewall rules.
 
+### Sharing consent
+
+Enabling scanned price sharing opens an app-themed **Enable / Cancel** dialog
+with the same light text color as Settings.
+A short summary covers transfers, excluded personal/image data, 30-day IP/new
+scan-link retention and retained price history. **Privacy and details** expands
+the service address, legacy-link exemption, cleanup timing and full behavior.
+Cancel is focused/default; Escape or closing declines. No connection starts
+until Enable is chosen. Existing saved consent and OFF behavior are unchanged.
+
 ## Community scan test
 
 Launch the user build from this checkout:
@@ -340,7 +350,7 @@ than guessing; use `-Version` for a deliberate override. Uncommitted changes
 cannot be classified: commit them first or prepare a version explicitly.
 
 An already prepared project version newer than the last release is reused, not
-bumped again (current prepared version: `0.2.0-beta`). Ordinary builds never
+bumped again. Ordinary builds never
 change version numbers. `tools\Publish-Release.ps1 -Version 1.0.0` explicitly
 graduates out of beta. The release script shows the chosen version and asks
 before committing/pushing, merging through a PR and tagging. It is not run

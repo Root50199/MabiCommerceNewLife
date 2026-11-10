@@ -8,6 +8,26 @@ namespace CalculatorTests;
 public sealed class UserGuideTests
 {
     [TestMethod]
+    public void SharingConsentIsThemedConciseAndDefaultsToCancel()
+    {
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var document = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", "SharingConsentWindow.xaml"));
+        XElement Named(string name) => document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
+        Assert.AreEqual("None", (string?)document.Root!.Attribute("WindowStyle"));
+        var summary = Named("ConsentSummary").Attribute("Text")!.Value;
+        Assert.IsTrue(summary.Length < 350);
+        StringAssert.Contains(summary, "30 days");
+        StringAssert.Contains(summary, "price history stays");
+        StringAssert.Contains(summary, "screenshots");
+        Assert.IsNull(Named("PrivacyDetails").Attribute("IsExpanded"));
+        Assert.AreEqual("#E9D9B8", (string?)Named("ConsentSummary").Attribute("Foreground"));
+        Assert.AreEqual("#E9D9B8", (string?)Named("PrivacyDetails").Attribute("Foreground"));
+        Assert.AreEqual("True", (string?)Named("DeclineSharingButton").Attribute("IsDefault"));
+        Assert.AreEqual("True", (string?)Named("DeclineSharingButton").Attribute("IsCancel"));
+        Assert.AreEqual("{DynamicResource CommerceActionButton}", (string?)Named("AcceptSharingButton").Attribute("Style"));
+    }
+
+    [TestMethod]
     public void AppIdentityAndFullRepositoryLinkAreVisible()
     {
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -24,6 +44,7 @@ public sealed class UserGuideTests
         Assert.AreEqual(link.Value, (string?)link.Attribute("NavigateUri"));
         Assert.AreEqual("RepositoryLink_RequestNavigate", (string?)link.Attribute("RequestNavigate"));
         Assert.IsTrue(link.Ancestors().Contains(Named("SettingsMenuCanvas")));
+        Assert.AreEqual("602", (string?)Named("SettingsMenuCanvas").Attribute("Height"));
     }
 
     [TestMethod]
