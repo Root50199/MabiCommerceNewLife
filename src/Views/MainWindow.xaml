@@ -541,8 +541,8 @@
                 <Image x:Name="ManualButtonImage" Width="22" Height="22" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Popup x:Name="SettingsPopup" Placement="Bottom" HorizontalOffset="-246" VerticalOffset="2" StaysOpen="True" AllowsTransparency="True" PopupAnimation="Fade">
-                <Canvas x:Name="SettingsMenuCanvas" Width="270" Height="602" ClipToBounds="True">
-                    <Image Canvas.Left="0" Canvas.Top="0" Source="{DynamicResource SettingsMenuBackgroundArt}" Width="270" Height="602" Stretch="Fill" />
+                <Canvas x:Name="SettingsMenuCanvas" Width="270" Height="794" ClipToBounds="True">
+                    <Image Canvas.Left="0" Canvas.Top="0" Source="{DynamicResource SettingsMenuBackgroundArt}" Width="270" Height="794" Stretch="Fill" />
                     <Grid Canvas.Left="12" Canvas.Top="4" Width="252" Height="40">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="18"/></Grid.ColumnDefinitions>
                         <Thumb Grid.ColumnSpan="2" Background="Transparent" DragDelta="SettingsPopup_DragDelta">
@@ -572,13 +572,47 @@
                             <CheckBox x:Name="AlwaysOnTopCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="AlwaysOnTop_Changed" Unchecked="AlwaysOnTop_Changed" />
                         </StackPanel>
                     </Grid>
-                    <StackPanel Canvas.Left="22" Canvas.Top="198" Width="230" Height="24" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel Canvas.Left="22" Canvas.Top="198" Width="230" Height="24" Orientation="Horizontal">
+                        <TextBlock Text="Boat timer overlay" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
+                        <local:InfoBubble Message="Shows a movable, always-on-top overlay with boarding and departure countdowns from saved schedules. Close its X to turn it off." TipType="Information" Margin="2,0,0,0" VerticalAlignment="Center" />
+                        <CheckBox x:Name="BoatTimerOverlayCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="BoatTimerSettings_Changed" Unchecked="BoatTimerSettings_Changed" />
+                    </StackPanel>
+                    <StackPanel x:Name="BoatTimersOnlyWithRouteSettingsRow" Canvas.Left="38" Canvas.Top="222" Width="214" Style="{StaticResource ScannerSuboption}" IsEnabled="{Binding IsChecked, ElementName=BoatTimerOverlayCheckBox}">
+                        <StackPanel Orientation="Horizontal" Height="24">
+                            <TextBlock Text="Only show with an active route" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
+                            <local:InfoBubble Message="Hides the overlay until an active loaded route is chosen." TipType="Information" Margin="2,0,0,0" VerticalAlignment="Center" />
+                            <CheckBox x:Name="BoatTimersOnlyWithRouteCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="BoatTimerSettings_Changed" Unchecked="BoatTimerSettings_Changed" />
+                        </StackPanel>
+                        <StackPanel x:Name="RouteBoatTimersSettingsRow" Margin="16,0,0,0" Height="24" Orientation="Horizontal" Style="{StaticResource ScannerSuboption}" IsEnabled="{Binding IsChecked, ElementName=BoatTimersOnlyWithRouteCheckBox}">
+                            <TextBlock Text="Only relevant boats" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
+                            <local:InfoBubble Message="Shows only boats used by the active loaded route, following the route map's port choices. Land-only routes show no boats. Applies only while Only show with an active route is on." TipType="Information" Margin="2,0,0,0" VerticalAlignment="Center" />
+                            <CheckBox x:Name="RouteBoatTimersOnlyCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="BoatTimerSettings_Changed" Unchecked="BoatTimerSettings_Changed" />
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Canvas.Left="22" Canvas.Top="270" Width="230" Height="24" Orientation="Horizontal">
+                        <TextBlock Text="Checklist overlay" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
+                        <local:InfoBubble Message="Shows commerce preparation reminders. Hover for move controls, background transparency and a click-through toggle. Checks reset after a successful sale." TipType="Information" Margin="2,0,0,0" VerticalAlignment="Center" />
+                        <CheckBox x:Name="ChecklistOverlayCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="ChecklistSettings_Changed" Unchecked="ChecklistSettings_Changed" />
+                    </StackPanel>
+                    <StackPanel x:Name="ChecklistOnlyWithRouteSettingsRow" Canvas.Left="38" Canvas.Top="294" Width="214" Style="{StaticResource ScannerSuboption}" IsEnabled="{Binding IsChecked, ElementName=ChecklistOverlayCheckBox}">
+                        <StackPanel Orientation="Horizontal" Height="24">
+                            <TextBlock Text="Only show with an active route" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
+                            <local:InfoBubble Message="Hides the checklist without an active loaded route. When off, shows the general everything list." TipType="Information" Margin="2,0,0,0" VerticalAlignment="Center" />
+                            <CheckBox x:Name="ChecklistOnlyWithRouteCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="ChecklistSettings_Changed" Unchecked="ChecklistSettings_Changed" />
+                        </StackPanel>
+                        <StackPanel x:Name="RelevantChecklistSettingsRow" Margin="16,0,0,0" Height="24" Orientation="Horizontal" Style="{StaticResource ScannerSuboption}" IsEnabled="{Binding IsChecked, ElementName=ChecklistOnlyWithRouteCheckBox}">
+                            <TextBlock Text="Only relevant items" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
+                            <local:InfoBubble Message="Uses the active load's transport, letter, cover and selected bonuses, with gear/title reminders. Without this option, shows the general everything list." TipType="Information" Margin="2,0,0,0" VerticalAlignment="Center" />
+                            <CheckBox x:Name="RelevantChecklistOnlyCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="ChecklistSettings_Changed" Unchecked="ChecklistSettings_Changed" />
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Canvas.Left="22" Canvas.Top="342" Width="230" Height="24" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="Check updates on app open" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
                         <local:InfoBubble x:Name="UpdateInfo" Message="Checks this app's public GitHub releases once when opened. Includes stable and beta Windows x64 releases. GitHub receives the connection IP and app updater user-agent, not planner/account data. Downloads and installation always require your permission. Updates preserve settings/history, close this instance and restart via a temporary Windows helper; no admin elevation. Turn this off for manual checks only." TipType="Information" Margin="2,0,0,0" VerticalAlignment="Center" />
                         <CheckBox x:Name="CheckUpdatesOnOpenCheckBox" Style="{StaticResource SettingsPlaceholderCheckBox}" Margin="6,0,0,0" VerticalAlignment="Center" Checked="CheckUpdatesOnOpen_Changed" Unchecked="CheckUpdatesOnOpen_Changed" />
                     </StackPanel>
-                    <Button x:Name="CheckForUpdatesButton" Canvas.Left="45" Canvas.Top="224" Width="180" Height="22" Click="CheckForUpdates_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="10" FontWeight="Bold" Cursor="Hand" Content="CHECK FOR UPDATES" />
-                    <StackPanel x:Name="CalculatorSettingsRows" Canvas.Left="22" Canvas.Top="278" Width="230">
+                    <Button x:Name="CheckForUpdatesButton" Canvas.Left="45" Canvas.Top="368" Width="180" Height="22" Click="CheckForUpdates_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="10" FontWeight="Bold" Cursor="Hand" Content="CHECK FOR UPDATES" />
+                    <StackPanel x:Name="CalculatorSettingsRows" Canvas.Left="22" Canvas.Top="422" Width="230">
                     <Grid Height="24">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock Text="Screen reader mode" Foreground="#E9D9B8" FontSize="10" VerticalAlignment="Center" Margin="3,0" />
@@ -691,14 +725,14 @@
                             </StackPanel>
                         </StackPanel>
                     </Grid>
-                    <Button x:Name="TradeHistoryButton" Canvas.Left="65" Canvas.Top="512" Width="140" Height="22" Click="TradeHistoryButton_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="10" FontWeight="Bold" Cursor="Hand" Content="TRADE HISTORY" />
-                    <TextBlock Canvas.Left="22" Canvas.Top="542" Width="226" Height="32" FontSize="10" TextWrapping="Wrap" TextAlignment="Center">
+                    <Button x:Name="TradeHistoryButton" Canvas.Left="65" Canvas.Top="656" Width="140" Height="22" Click="TradeHistoryButton_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="10" FontWeight="Bold" Cursor="Hand" Content="TRADE HISTORY" />
+                    <TextBlock Canvas.Left="22" Canvas.Top="686" Width="226" Height="32" FontSize="10" TextWrapping="Wrap" TextAlignment="Center">
                         <Hyperlink x:Name="RepositoryLink" NavigateUri="https://github.com/Root50199/MabiCommerceNewLife" RequestNavigate="RepositoryLink_RequestNavigate" Foreground="#E9D9B8">https://github.com/Root50199/MabiCommerceNewLife</Hyperlink>
                     </TextBlock>
-                    <local:InfoBubble Canvas.Left="208" Canvas.Top="516" Message="Lists loads sold with Sell and tracks running totals." TipType="Information" />
+                    <local:InfoBubble Canvas.Left="208" Canvas.Top="660" Message="Lists loads sold with Sell and tracks running totals." TipType="Information" />
                     <Button x:Name="ResetWindowPositionsButton" Canvas.Left="45" Canvas.Top="120" Width="180" Height="22" Click="ResetWindowPositions_Click" Background="#493A26" Foreground="#F4ECD9" BorderBrush="#A88A46" BorderThickness="1" FontSize="10" FontWeight="Bold" Cursor="Hand" Content="RESET WINDOW POSITIONS" />
                     <local:InfoBubble Canvas.Left="228" Canvas.Top="124" Message="Recenters planner windows if one is off-screen." TipType="Tutorial" />
-                    <Grid Canvas.Left="42" Canvas.Top="250" Width="186" Height="27">
+                    <Grid Canvas.Left="42" Canvas.Top="394" Width="186" Height="27">
                         <Image Source="{DynamicResource BracketTopLeftArt}" Width="14" Height="18" HorizontalAlignment="Left" VerticalAlignment="Top" />
                         <Image Source="{DynamicResource BracketTopRightArt}" Width="12" Height="18" HorizontalAlignment="Right" VerticalAlignment="Top" />
                         <Image Source="{DynamicResource BracketBottomLeftArt}" Width="14" Height="18" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
@@ -1042,7 +1076,7 @@
                                         <ItemsControl x:Name="AutoTimePlaceholder" Height="60" VerticalAlignment="Top" ItemTemplate="{StaticResource AutoPlaceholderTemplate}" IsHitTestVisible="False" />
                                     </Grid>
                                 </StackPanel>
-                                <TextBlock Text="CUSTOM SELECTION" Foreground="#342C20" FontSize="7" FontWeight="Bold" Margin="0" />
+                                <TextBlock Text="CUSTOM SELECTION" Foreground="#342C20" FontSize="7" FontWeight="Bold" Margin="0,8,0,0" />
                                 <Grid Width="202" Height="20">
                                     <ItemsControl x:Name="AutoCustomPlaceholder" Height="20" ItemTemplate="{StaticResource AutoPlaceholderTemplate}" IsHitTestVisible="False" />
                                     <ItemsControl x:Name="AutoCustomSelectionList" Height="20" ItemTemplate="{StaticResource AutoPlanTemplate}" IsHitTestVisible="False" Visibility="Collapsed" />

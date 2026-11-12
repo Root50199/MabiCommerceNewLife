@@ -24,7 +24,6 @@ public partial class MainWindow
     private string? _communityEndpoint;
     private const int CommunityBuyKey = int.MinValue;
     private const int CommunityStockKey = int.MinValue + 1;
-    private const string CommunitySharingConsentVersion = "outpost-batches-v1";
 
     private CommunityMarketValue CommunityValue(int productId, int postId, decimal currentValue)
     {
@@ -75,8 +74,8 @@ public partial class MainWindow
         Loaded -= RestoreCommunitySharing;
         if (!_plannerPreferences.CommunitySharingEnabled || ScreenReaderModeCheckBox.IsChecked != true || _helpClosing)
             return;
-        if (_plannerPreferences.CommunitySharingConsentEndpoint != CommunityClient.DefaultEndpoint ||
-            _plannerPreferences.CommunitySharingConsentVersion != CommunitySharingConsentVersion)
+        if (!CommunitySharingConsent.IsCurrent(_plannerPreferences.CommunitySharingConsentEndpoint,
+                _plannerPreferences.CommunitySharingConsentVersion))
         {
             _plannerPreferences.CommunitySharingEnabled = false;
             SavePlannerPreferences();
@@ -107,14 +106,16 @@ public partial class MainWindow
             SetStatus("Enable Screen reader mode before enabling scanned price sharing.", true);
             return;
         }
-        if (new SharingConsentWindow(this).ShowDialog() != true)
+        if (!CommunitySharingConsent.IsCurrent(_plannerPreferences.CommunitySharingConsentEndpoint,
+                _plannerPreferences.CommunitySharingConsentVersion) &&
+            new SharingConsentWindow(this).ShowDialog() != true)
         {
             CommunitySharingCheckBox.IsChecked = false;
             return;
         }
         _plannerPreferences.CommunitySharingEnabled = true;
         _plannerPreferences.CommunitySharingConsentEndpoint = CommunityClient.DefaultEndpoint;
-        _plannerPreferences.CommunitySharingConsentVersion = CommunitySharingConsentVersion;
+        _plannerPreferences.CommunitySharingConsentVersion = CommunitySharingConsent.CurrentVersion;
         SavePlannerPreferences();
         await ConnectCommunitySharingAsync();
     }
@@ -206,10 +207,10 @@ public partial class MainWindow
                 ? "Connecting scanned price sharing. Refresh will be enabled after the connection succeeds."
                 : _plannerPreferences.CommunitySharingEnabled
                     ? "Scanned price sharing is saved ON but is not connected. Click the bottom-left status dot for details and retry. Refresh is limited to once per minute."
-                    : "Receives scanned price and Inventory supply data and applies the newest values. Enabled when Screen reader mode and Scanned price sharing are turned on in Settings > Calculator Behavior. Refresh is limited to once per minute."
+                    : "Receives scanned prices, Inventory supply, and rotating barter offers; newest values apply. Enabled when Screen reader mode and Scanned price sharing are turned on in Settings > Calculator Behavior. Refresh is limited to once per minute."
             : remaining > 0
                 ? $"Receives and applies newest shared prices. Next refresh in {remaining} seconds. The one-minute limit applies across all goods and tabs, including failed attempts."
-                : "Receives scanned price and Inventory supply data and applies the newest values using your gear and source-post merchant level. Refresh at most once per minute; no automatic polling.";
+                : "Receives scanned prices, Inventory supply, and rotating barter offers; newest values apply using your gear and source-post merchant level. Newer local picks/scans are kept. Refresh at most once per minute; no automatic polling.";
     }
 
     private async void CommunityRefresh_Click(object sender, RoutedEventArgs e)
@@ -352,6 +353,27 @@ public partial class MainWindow
                     CommunityObservationOrigin(observation, observation.Review?.StockManual == true));
         }
         _communityApplicationsEnabled = true;
+        var selectedProduct = SelectedProduct;
+        var rotationChanged = false;
+        var rotatingProducts = _products.Where(product => product.HasRotationAlternatives)
+            .ToDictionary(product => product.CatalogId, product => product.PostId);
+        foreach (var observation in CommunityBarterRotation.Latest(snapshot.Observations, rotatingProducts,
+            _plannerPreferences.BarterRotationUpdatesByPostId))
+        {
+            var product = updates.Single(update => update.Observation == observation).Product;
+            rotationChanged |= ActivateRotation(product, observation.ReceivedAt, observation.Sequence);
+        }
+        if (rotationChanged && IsBarterMode)
+        {
+            RefreshProducts();
+            if (selectedProduct is not null)
+            {
+                var selection = selectedProduct.IsInactiveRotation
+                    ? selectedProduct.RotationAlternatives.Single(product => !product.IsInactiveRotation)
+                    : selectedProduct;
+                ProductList.SelectedItem = selection;
+            }
+        }
         RefreshCommunityValues();
     }
 

@@ -124,6 +124,14 @@ public partial class MainWindow : Window
         Topmost = _plannerPreferences.AlwaysOnTop;
         TopmostGuard.Watch(this);
         AlwaysOnTopCheckBox.IsChecked = _plannerPreferences.AlwaysOnTop;
+        _plannerPreferences.BoatTimerOverlay ??= new BoatTimerOverlaySettings();
+        BoatTimerOverlayCheckBox.IsChecked = _plannerPreferences.BoatTimerOverlay.Enabled;
+        RouteBoatTimersOnlyCheckBox.IsChecked = _plannerPreferences.BoatTimerOverlay.RouteOnly;
+        BoatTimersOnlyWithRouteCheckBox.IsChecked = _plannerPreferences.BoatTimerOverlay.OnlyWithRoute;
+        _plannerPreferences.ChecklistOverlay ??= new ChecklistOverlaySettings();
+        ChecklistOverlayCheckBox.IsChecked = _plannerPreferences.ChecklistOverlay.Enabled;
+        ChecklistOnlyWithRouteCheckBox.IsChecked = _plannerPreferences.ChecklistOverlay.OnlyWithRoute;
+        RelevantChecklistOnlyCheckBox.IsChecked = _plannerPreferences.ChecklistOverlay.RouteOnly;
         AutoRefreshGroupStockCheckBox.IsChecked = _plannerPreferences.AutoRefreshGroupStock;
         SaveLastScanRegionCheckBox.IsChecked = _plannerPreferences.SaveLastScanRegion;
         if (_plannerPreferences.FerryBufferSeconds is < 0 or > ShipScheduleEstimator.MaxMissedDepartureBufferSeconds)
@@ -148,7 +156,7 @@ public partial class MainWindow : Window
         TradingPostFrameImage.Source = LoadImage("Data/CommerceUI/TradingPostFrameCustom.png");
         SettingsButtonImage.Source = LoadImage("Data/CommerceUI/Settings.png");
         ManualButtonImage.Source = LoadImage("Data/CommerceUI/BookIcon.png");
-        Resources["SettingsMenuBackgroundArt"] = BuildSettingsMenuBackground(16);
+        Resources["SettingsMenuBackgroundArt"] = BuildSettingsMenuBackground(22);
         Resources["BracketTopLeftArt"] = LoadImage("Data/CommerceUI/BracketTopLeft.png");
         Resources["BracketTopRightArt"] = LoadImage("Data/CommerceUI/BracketTopRight.png");
         Resources["BracketBottomLeftArt"] = LoadImage("Data/CommerceUI/BracketBottomLeft.png");
@@ -258,7 +266,7 @@ public partial class MainWindow : Window
         // Must run after the barter goods are added: their recipes list the materials to seed.
         SeedBarterMaterialDefaults();
         // Rotating grade-1 offers: the client has no schedule, so one alternative per post is active,
-        // chosen manually from the name dropdown or by scanning its price list.
+        // chosen manually, by a local scan, or from the newest shared scan.
         foreach (var group in _products.Where(product => product.IsBarter && product.IsSeasonal).GroupBy(product => product.PostId))
         {
             var alternatives = group.OrderBy(product => product.Id).ToList();
@@ -271,6 +279,13 @@ public partial class MainWindow : Window
                 alternative.RotationAlternatives = alternatives;
                 alternative.IsInactiveRotation = alternative.CatalogId != activeId;
             }
+            if (!_plannerPreferences.BarterRotationUpdatesByPostId.ContainsKey(group.Key) &&
+                _plannerPreferences.BarterRotationScanSightings
+                    .Where(sighting => sighting.Source == BarterSightingSource.Scan &&
+                        sighting.PostId == group.Key && sighting.OfferId == activeId)
+                    .MaxBy(sighting => sighting.LastSeenUtc) is { } sighting)
+                _plannerPreferences.BarterRotationUpdatesByPostId[group.Key] = new(
+                    new DateTimeOffset(DateTime.SpecifyKind(sighting.LastSeenUtc, DateTimeKind.Utc)).ToUnixTimeMilliseconds());
         }
         foreach (var postId in _products.Where(product => product.HasRotationAlternatives).Select(product => product.PostId).Distinct())
             RefreshRotationHistory(postId);
@@ -376,6 +391,9 @@ public partial class MainWindow : Window
         {
             Microsoft.Win32.SystemEvents.PowerModeChanged -= SystemEvents_PowerModeChanged;
             _routeMapWindow?.Close();
+            _shipTimeRefreshTimer.Stop();
+            _boatTimerWindow?.Close();
+            _checklistWindow?.Close();
             SaveWeeklyStock();
         };
         AutoRefreshGroupStockIfDue();
@@ -383,12 +401,18 @@ public partial class MainWindow : Window
         {
             // Ferry-dependent trip times move with the clock; refresh them once per minute so tooltips stay steady.
             var minute = CurrentMinute();
-            if (minute == _lastTimeRefreshMinute) return;
+            if (minute == _lastTimeRefreshMinute)
+            {
+                RefreshBoatTimers();
+                RefreshChecklist();
+                return;
+            }
             _lastTimeRefreshMinute = minute;
             if (TradeMiddleTabs.SelectedIndex == 0) RefreshManualQuoteMetrics();
             RefreshDestinationTotals();
         };
         _shipTimeRefreshTimer.Start();
+        Loaded += (_, _) => { RefreshBoatTimers(); RefreshChecklist(); };
         ContentRendered += OfferFirstRunTutorial;
     }
 
@@ -422,6 +446,8 @@ public partial class MainWindow : Window
         public int PortalLoadBufferSeconds { get; set; } = RegionalRouteEstimates.DefaultPortalLoadBufferSeconds;
         public bool TransportListView { get; set; }
         public RouteMapOverlaySettings RouteMapOverlay { get; set; } = new();
+        public BoatTimerOverlaySettings BoatTimerOverlay { get; set; } = new();
+        public ChecklistOverlaySettings ChecklistOverlay { get; set; } = new();
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ScanRegion? LastScanRegion { get; set; }
         public string CommerceMasteryRank { get; set; } = "F";
@@ -435,6 +461,7 @@ public partial class MainWindow : Window
         public bool BarterMaterialStarterValuesApplied { get; set; }
         public Dictionary<int, int> BarterMaterialsOnHandById { get; set; } = [];
         public Dictionary<int, int> ActiveBarterRotationByPostId { get; set; } = [];
+        public Dictionary<int, CommunityBarterRotationUpdate> BarterRotationUpdatesByPostId { get; set; } = [];
         // Scan sightings only; the earlier BarterRotationSightings key may hold manual picks and is ignored.
         public List<BarterRotationSighting> BarterRotationScanSightings { get; set; } = [];
         public decimal GoldPerDucat { get; set; } = 1m;
@@ -1852,7 +1879,7 @@ public partial class MainWindow : Window
         AutoBestOverallModeButton.Visibility = mode == GoodsMode.Barter ? Visibility.Collapsed : Visibility.Visible;
         Grid.SetColumnSpan(AutoSelectedStartModeButton, mode == GoodsMode.Barter ? 2 : 1);
         AutoProfitResultsHeader.Text = mode == GoodsMode.Barter ? "TOP 5 · TOTAL PROFIT" : "TOP 3 · TOTAL PROFIT";
-        AutoProfitResultsGrid.Height = AutoProfitResultsList.Height = mode == GoodsMode.Barter ? 108 : 68;
+        AutoProfitResultsGrid.Height = AutoProfitResultsList.Height = mode == GoodsMode.Barter ? 112 : 68;
         AutoProfitPlaceholder.Height = mode == GoodsMode.Barter ? 100 : 60;
         AutoProfitPlaceholder.ItemsSource = Enumerable.Range(0, mode == GoodsMode.Barter ? 5 : 3).ToArray();
         AutoTimeResultsPanel.Visibility = mode == GoodsMode.Barter ? Visibility.Collapsed : Visibility.Visible;
@@ -1878,15 +1905,21 @@ public partial class MainWindow : Window
         ModeOf(product) == GoodsMode.Group ? GroupDestinationBonus.Apply(enteredPrice) : enteredPrice;
 
     // Makes one rotating barter alternative the active offer for its post and remembers the choice.
-    private bool ActivateRotation(GoodsEntry product)
+    private bool ActivateRotation(GoodsEntry product, long? observedAt = null, long? sequence = null)
     {
-        if (!product.HasRotationAlternatives || !product.IsInactiveRotation) return false;
+        if (!product.HasRotationAlternatives) return false;
+        var timestamp = observedAt ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (_plannerPreferences.BarterRotationUpdatesByPostId.TryGetValue(product.PostId, out var previous) &&
+            timestamp < previous.Time)
+            return false;
+        var changed = product.IsInactiveRotation;
         foreach (var alternative in product.RotationAlternatives)
             alternative.IsInactiveRotation = !ReferenceEquals(alternative, product);
         _plannerPreferences.ActiveBarterRotationByPostId[product.PostId] = product.CatalogId;
+        _plannerPreferences.BarterRotationUpdatesByPostId[product.PostId] = new(timestamp, sequence);
         SavePlannerPreferences();
-        _barterMaterialsWindow?.RefreshVerdicts();
-        return true;
+        if (changed) _barterMaterialsWindow?.RefreshVerdicts();
+        return changed;
     }
 
     // Logs the time a price-list scan saw this rotating offer at its post, so weekly and monthly rotation can be
@@ -1912,7 +1945,8 @@ public partial class MainWindow : Window
         var lines = history.TakeLast(12).Select(item => item.FirstSeenUtc == item.LastSeenUtc
             ? $"{When(item.FirstSeenUtc)}: {NameOf(item.OfferId)}"
             : $"{When(item.FirstSeenUtc)} to {When(item.LastSeenUtc)}: {NameOf(item.OfferId)}");
-        var text = "Pick the offer this outpost has now. Scan its price list to log a sighting.\n" +
+        var text = "Pick the offer this outpost has now, or refresh shared scans to select the newest observed offer. " +
+            "Newer local picks/scans are kept. Scan its price list to log a local sighting.\n" +
             (confirmed ? "Scanned since the weekly reset." : "Not scanned since the weekly reset.") +
             "\n\nScanned (Pacific time):\n" +
             (history.Count == 0 ? "None yet" : string.Join("\n", lines)) +
@@ -3156,7 +3190,7 @@ public partial class MainWindow : Window
             }
 
             _applyingLocalScan = true;
-            var rotationChanged = ActivateRotation(product);
+            var rotationChanged = ActivateRotation(product, read.CapturedAt);
             RecordRotationSighting(product, BarterSightingSource.Scan);
             if (_goodsMode != ModeOf(product))
                 SetGoodsMode(ModeOf(product));
@@ -3164,7 +3198,9 @@ public partial class MainWindow : Window
                 PostPicker.SelectedValue = sourcePost.Id;
             else if (rotationChanged)
                 RefreshProducts();
-            ProductList.SelectedItem = product;
+            ProductList.SelectedItem = product.IsInactiveRotation
+                ? product.RotationAlternatives.Single(alternative => !alternative.IsInactiveRotation)
+                : product;
             if (acceptedStock is { } stock && LocalCommunityReadIsCurrent(product.Id, CommunityStockKey, read.CapturedAt))
             {
                 SetDetectedStock(product.Id, stock);
@@ -3687,6 +3723,7 @@ public partial class MainWindow : Window
         cargo.Clear();
         if (weeklyStockSold) SaveWeeklyStock();
         DucatsInput.Text = FormatDucats(currentDucats + saleProceeds);
+        ResetDepartureChecklist();
         return true;
     }
 
@@ -4085,6 +4122,8 @@ public partial class MainWindow : Window
     // Ferry legs use the next sailing's ports.
     private void RefreshRouteMap()
     {
+        RefreshBoatTimers();
+        RefreshChecklist();
         if (_routeMapWindow is null || _routeMapData is null) return;
         var stops = RouteMapStops();
         if (stops is null || stops[^1] == SmugglerDestinationId)
@@ -4094,17 +4133,10 @@ public partial class MainWindow : Window
                 : ActiveCargo.Count == 0 ? "Load goods to map their route." : "Choose a destination for the route map."]));
             return;
         }
-        var departureTime = DateTimeOffset.UtcNow;
-        var transportId = SelectedTransport?.Id ?? TransportIds.Backpack;
         var plans = new List<RouteMapPlan>();
-        foreach (var (from, to) in stops.Zip(stops.Skip(1)))
+        foreach (var (from, to, ship) in SelectedRouteLegs(stops, DateTimeOffset.UtcNow))
         {
-            var ship = _shipScheduleEstimator.Estimate(from, to, departureTime, transportId, PostName,
-                _plannerPreferences.FerryBufferEnabled ? _plannerPreferences.FerryBufferSeconds : 0,
-                ModifierTotals(IsGroupMode).TransportSpeedPercent, _plannerPreferences.PortalLoadBufferSeconds);
             plans.Add(_routeMapData.Plan(from, to, ship?.Ports, PostName));
-            var minutes = GetManualQuoteMinutes(from, to, transportId, out _, departureTime);
-            if (minutes is > 0) departureTime = departureTime.AddMinutes((double)minutes.Value);
         }
         _routeMapWindow.SetPlan(RouteMapPlan.Join(plans, string.Join(" → ", stops.Select(PostName))));
     }
@@ -4322,6 +4354,14 @@ public partial class MainWindow : Window
             overlay.Left = overlay.Top = overlay.Width = overlay.Height = null;
             SavePlannerPreferences();
         }
+
+        if (_boatTimerWindow is { IsLoaded: true } boatTimers) boatTimers.ResetPosition();
+        _plannerPreferences.BoatTimerOverlay.Left = _boatTimerWindow?.Left;
+        _plannerPreferences.BoatTimerOverlay.Top = _boatTimerWindow?.Top;
+        _checklistWindow?.ResetPosition();
+        _plannerPreferences.ChecklistOverlay.Left = _checklistWindow?.Left;
+        _plannerPreferences.ChecklistOverlay.Top = _checklistWindow?.Top;
+        SavePlannerPreferences();
 
         foreach (var window in new Window?[] { _shoppingListWindow, _barterMaterialsWindow, _inventoryWindow, _tradeHistoryWindow })
         {

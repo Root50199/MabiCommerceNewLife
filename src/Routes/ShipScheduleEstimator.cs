@@ -44,6 +44,9 @@ public sealed class ShipLandAccessDistance
 // Ports lists the ship-schedule ports visited in order; consecutive ports on different continents are ferry hops.
 public sealed record ShipTravelEstimate(decimal Minutes, string Breakdown, IReadOnlyList<string> Ports);
 
+public sealed record BoatTimer(string From, string To, bool Bidirectional,
+    TimeSpan BoardingIn, TimeSpan DepartureIn, TimeSpan SailingTime);
+
 public sealed class ShipScheduleEstimator
 {
     private const decimal MinutesPerErinnDay = 1440m;
@@ -126,6 +129,27 @@ public sealed class ShipScheduleEstimator
         var pstTimeOfDay = utcTime.ToUniversalTime().ToOffset(TimeSpan.FromHours(pstUtcOffsetHours)).TimeOfDay;
         var gameTicks = (long)((decimal)pstTimeOfDay.Ticks * erinnMinutesPerRealMinute) % ErinnDay.Ticks;
         return TimeSpan.FromTicks(gameTicks);
+    }
+
+    // Null means no route filter; an empty set means a selected route without ferry legs.
+    public IReadOnlyList<BoatTimer> GetBoatTimers(DateTimeOffset utcNow,
+        IEnumerable<ShipTravelEstimate>? journeys = null)
+    {
+        var hops = journeys?.SelectMany(journey => journey.Ports.Zip(journey.Ports.Skip(1))).ToHashSet();
+        var timers = new List<BoatTimer>();
+        foreach (var route in _configuration.Routes)
+        {
+            if (hops is not null && !hops.Contains((route.From, route.To)) &&
+                !(route.Bidirectional && hops.Contains((route.To, route.From)))) continue;
+            var ferry = _ferries.First(ferry => ferry.From == route.From && ferry.To == route.To);
+            // Display the actual schedule, not the planner's missed-departure safety buffer.
+            var sailing = GetNextSailing(ferry, utcNow, 0);
+            timers.Add(new BoatTimer(route.From, route.To, route.Bidirectional,
+                TimeSpan.FromMinutes((double)sailing.BoardWaitMinutes),
+                TimeSpan.FromMinutes((double)sailing.DepartureWaitMinutes),
+                TimeSpan.FromMinutes((double)sailing.SailingMinutes)));
+        }
+        return timers;
     }
 
     public ShipTravelEstimate? Estimate(int sourcePostId, int destinationPostId, DateTimeOffset utcNow, int transportId = TransportIds.Handcart,

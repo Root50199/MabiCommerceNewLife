@@ -95,7 +95,9 @@ public sealed class AppUpdateTests
     }
 
     [TestMethod]
-    public void PackagesExtractOnlyReleaseOwnedFilesAndPreserveUserFiles()
+    [DataRow(false)]
+    [DataRow(true)]
+    public void PackagesExtractOnlyReleaseOwnedFilesAndPreserveUserFiles(bool sharingEnabled)
     {
         var directory = NewDirectory();
         try
@@ -106,9 +108,21 @@ public sealed class AppUpdateTests
             var target = Path.Combine(directory, "app");
             Directory.CreateDirectory(target);
             File.WriteAllText(Path.Combine(target, AppUpdateInstaller.ExecutableName), "original app");
-            File.WriteAllText(Path.Combine(target, "config.json"), "owner settings");
+            var settingsPath = Path.Combine(target, "config.json");
+            var settings = JsonSerializer.Serialize(new
+            {
+                CommunitySharingEnabled = sharingEnabled,
+                CommunitySharingConsentEndpoint = CommunityClient.ProductionEndpoint,
+                CommunitySharingConsentVersion = CommunitySharingConsent.CurrentVersion
+            });
+            File.WriteAllText(settingsPath, settings);
             AppUpdateInstaller.ValidateTarget(target, files);
-            Assert.AreEqual("owner settings", File.ReadAllText(Path.Combine(target, "config.json")));
+            Assert.AreEqual(settings, File.ReadAllText(settingsPath), "Updates must preserve sharing ON and OFF, not just consent.");
+            using var saved = JsonDocument.Parse(File.ReadAllText(settingsPath));
+            Assert.AreEqual(sharingEnabled, saved.RootElement.GetProperty("CommunitySharingEnabled").GetBoolean());
+            Assert.IsTrue(CommunitySharingConsent.IsCurrent(
+                saved.RootElement.GetProperty("CommunitySharingConsentEndpoint").GetString(),
+                saved.RootElement.GetProperty("CommunitySharingConsentVersion").GetString()));
             File.WriteAllText(Path.Combine(target, "MabiCommerceNewLife.csproj"), "source");
             Assert.ThrowsException<IOException>(() => AppUpdateInstaller.ValidateTarget(target, files));
         }
