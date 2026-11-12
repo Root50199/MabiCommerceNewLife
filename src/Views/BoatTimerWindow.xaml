@@ -1,0 +1,27 @@
+<Window x:Class="MabiCommerceNewLife.BoatTimerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Boat Timers" Width="330" SizeToContent="Height"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" ShowInTaskbar="False" ShowActivated="False" Topmost="True"
+        UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Border x:Name="BodyBackground" BorderBrush="#A88A46" BorderThickness="1" CornerRadius="4" Padding="8">
+        <StackPanel>
+            <TextBlock x:Name="ScopeText" Foreground="#CBB994" FontSize="10" Margin="0,0,0,4" TextWrapping="Wrap" />
+            <ItemsControl x:Name="TimersList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderBrush="#605E492B" BorderThickness="0,1,0,0" Padding="2,6">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Route}" Foreground="#F4ECD9" FontSize="12" FontWeight="Bold" />
+                                <TextBlock Text="{Binding Countdown}" Foreground="#E9D9B8" FontSize="11" Margin="0,3,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock x:Name="EmptyText" Foreground="#E9D9B8" FontSize="11" TextWrapping="Wrap" Margin="2,6" Visibility="Collapsed" />
+            <TextBlock Text="Schedule estimates, not live boat status." Foreground="#CBB994" FontSize="10" Margin="0,6,0,0" />
+        </StackPanel>
+    </Border>
+</Window>

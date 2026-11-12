@@ -60,6 +60,8 @@ public partial class MainWindow
         var windows = HelpOwnedWindows(this);
         if (_routeMapWindow is { IsVisible: true } routeMap)
             windows = windows.Concat(new[] { routeMap }).Concat(HelpOwnedWindows(routeMap));
+        foreach (var overlay in new Window?[] { _boatTimerWindow, _checklistWindow }.OfType<Window>())
+            windows = windows.Concat(new[] { overlay }).Concat(HelpOwnedWindows(overlay));
         foreach (var window in windows.Distinct().Where(window => window.IsVisible).ToArray())
         {
             _tutorialHiddenWindows.Add(window);
@@ -228,6 +230,25 @@ public partial class MainWindow
     {
         if (surface == GuideSurface.Inventory) return new InventoryWindow(this);
         if (surface == GuideSurface.Materials) return new BarterMaterialsWindow(this);
+        if (surface == GuideSurface.BoatTimers)
+        {
+            var boats = new BoatTimerWindow(new BoatTimerOverlaySettings(), () => { }) { FontFamily = FontFamily };
+            boats.ShowTimers(_shipScheduleEstimator.GetBoatTimers(DateTimeOffset.UtcNow), filtered: false);
+            var preview = boats.CreateTutorialPreview();
+            preview.Owner = this;
+            return preview;
+        }
+        if (surface == GuideSurface.Checklist)
+        {
+            var checklist = new ChecklistWindow(new ChecklistOverlaySettings(), () => { }, []) { FontFamily = FontFamily };
+            var context = new DepartureChecklistContext("", "", GuaranteeLetterKind.None, false, false, false, false, false,
+                _plannerPreferences.CommerceModifierCounts, _plannerPreferences.AccessoryEnchantIds,
+                _plannerPreferences.AccessoryEnchantRolls);
+            checklist.ShowChecklist(DepartureChecklist.Build(context, relevant: false), relevant: false);
+            var preview = checklist.CreateTutorialPreview();
+            preview.Owner = this;
+            return preview;
+        }
         if (surface == GuideSurface.RouteMap)
         {
             if (_routeMapData is null)
@@ -249,7 +270,7 @@ public partial class MainWindow
         content.Children.Add(_tutorialSettingsContent);
         var settings = new Window
         {
-            Owner = this, Title = "Settings - Tutorial", Width = 650, Height = 530,
+            Owner = this, Title = "Settings - Tutorial", Width = 650, Height = SettingsMenuCanvas.Height,
             WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize, Content = content,
             ShowInTaskbar = false, FontFamily = FontFamily
         };

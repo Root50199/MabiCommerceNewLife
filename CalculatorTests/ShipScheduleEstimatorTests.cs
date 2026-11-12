@@ -19,6 +19,82 @@ public sealed class ShipScheduleEstimatorTests
     }
 
     [TestMethod]
+    public void BoatTimersShowOneRowPerScheduleWithRealTimeBoardingAndDeparture()
+    {
+        var timers = LoadEstimator().GetBoatTimers(MidnightErinn);
+        Assert.AreEqual(4, timers.Count, "Bidirectional boats share a schedule, not duplicate rows.");
+        var belvast = timers.Single(timer => timer.To == "Belvast");
+        Assert.IsTrue(belvast.Bidirectional);
+        Assert.AreEqual(TimeSpan.FromSeconds(45), belvast.BoardingIn);
+        Assert.AreEqual(TimeSpan.FromSeconds(225), belvast.DepartureIn);
+        Assert.AreEqual(TimeSpan.FromMinutes(2), belvast.SailingTime);
+    }
+
+    [TestMethod]
+    public void BoatTimersKeepShowingTheCurrentBoardingWindowWithoutThePlannerBuffer()
+    {
+        var timer = LoadEstimator().GetBoatTimers(MidnightErinn.AddSeconds(220))
+            .Single(timer => timer.To == "Belvast");
+        Assert.AreEqual(TimeSpan.Zero, timer.BoardingIn);
+        Assert.AreEqual(TimeSpan.FromSeconds(5), timer.DepartureIn);
+    }
+
+    [TestMethod]
+    public void BoatTimersRollOverImmediatelyAfterDepartureAndAcrossErinnMidnight()
+    {
+        var estimator = LoadEstimator();
+        var atDeparture = estimator.GetBoatTimers(MidnightErinn.AddSeconds(225)).Single(timer => timer.To == "Belvast");
+        var justAfter = estimator.GetBoatTimers(MidnightErinn.AddSeconds(226)).Single(timer => timer.To == "Belvast");
+        var lastDeparture = estimator.GetBoatTimers(MidnightErinn.AddSeconds(2116)).Single(timer => timer.To == "Belvast");
+        Assert.AreEqual(TimeSpan.Zero, atDeparture.DepartureIn);
+        Assert.AreEqual(TimeSpan.FromSeconds(269), justAfter.DepartureIn);
+        Assert.AreEqual(TimeSpan.FromSeconds(89), justAfter.BoardingIn);
+        Assert.AreEqual(TimeSpan.FromSeconds(269), lastDeparture.DepartureIn);
+    }
+
+    [TestMethod]
+    public void BoatTimersRecomputeFromTheClockInsteadOfAccumulatingTimerDrift()
+    {
+        var estimator = LoadEstimator();
+        var before = estimator.GetBoatTimers(MidnightErinn).Single(timer => timer.To == "Port Qilla");
+        var later = estimator.GetBoatTimers(MidnightErinn.AddSeconds(45)).Single(timer => timer.To == "Port Qilla");
+        Assert.AreEqual(TimeSpan.FromSeconds(45), before.DepartureIn - later.DepartureIn);
+        CollectionAssert.AreEqual(estimator.GetBoatTimers(MidnightErinn).ToArray(),
+            estimator.GetBoatTimers(MidnightErinn.AddMinutes(36)).ToArray());
+    }
+
+    [TestMethod]
+    public void BoatTimerFilterIncludesBothSailingsOfTheChosenTransfer()
+    {
+        var estimator = LoadEstimator();
+        var journey = estimator.Estimate(PostIds.Belvast, PostIds.Qilla, MidnightErinn);
+        Assert.IsNotNull(journey);
+        var timers = estimator.GetBoatTimers(MidnightErinn, [journey]);
+        CollectionAssert.AreEquivalent(new[] { "Belvast", "Port Qilla" }, timers.Select(timer => timer.To).ToArray());
+    }
+
+    [TestMethod]
+    public void BoatTimerFilterMatchesReverseSailingsAndIgnoresLandConnections()
+    {
+        var estimator = LoadEstimator();
+        var timers = estimator.GetBoatTimers(MidnightErinn,
+            [new ShipTravelEstimate(0, "", ["Port Connous", "Ceann", "Cobh", "Belvast"])]);
+        CollectionAssert.AreEquivalent(new[] { "Port Connous", "Belvast" }, timers.Select(timer => timer.To).ToArray());
+    }
+
+    [TestMethod]
+    public void BoatTimerFilterDoesNotJoinIndependentLegsOrInventBoatsForLandRoutes()
+    {
+        var estimator = LoadEstimator();
+        Assert.AreEqual(0, estimator.GetBoatTimers(MidnightErinn, []).Count);
+        Assert.AreEqual(0, estimator.GetBoatTimers(MidnightErinn,
+            [new ShipTravelEstimate(0, "", ["Ceann", "Cobh"])]).Count);
+        Assert.AreEqual(0, estimator.GetBoatTimers(MidnightErinn,
+            [new ShipTravelEstimate(0, "", ["Cobh"]), new ShipTravelEstimate(0, "", ["Belvast"])]).Count);
+        Assert.AreEqual(4, estimator.GetBoatTimers(MidnightErinn, null).Count);
+    }
+
+    [TestMethod]
     public void UladhToBelvastUsesNextCobhDepartureAndSailingDuration()
     {
         var estimator = LoadEstimator();

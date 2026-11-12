@@ -8,6 +8,21 @@ namespace CalculatorTests;
 public sealed class UserGuideTests
 {
     [TestMethod]
+    public void AutoCustomSelectionHasSpaceBelowRankedRows()
+    {
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var document = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", "MainWindow.xaml"));
+        var custom = document.Descendants().Single(element => (string?)element.Attribute("Text") == "CUSTOM SELECTION");
+        Assert.AreEqual("0,8,0,0", (string?)custom.Attribute("Margin"));
+        var siblings = custom.Parent!.Elements().ToArray();
+        Assert.IsTrue(Array.IndexOf(siblings, custom) >
+            Array.FindIndex(siblings, element => (string?)element.Attribute(x + "Name") == "AutoTimeResultsPanel"));
+        var customRow = siblings[Array.IndexOf(siblings, custom) + 1];
+        Assert.IsTrue(customRow.Descendants().Any(element =>
+            (string?)element.Attribute(x + "Name") == "AutoCustomSelectionList"));
+    }
+
+    [TestMethod]
     public void PendingUploadPromptIsThemedAndCancelIsTheSafeDefault()
     {
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -80,7 +95,7 @@ public sealed class UserGuideTests
         Assert.AreEqual(link.Value, (string?)link.Attribute("NavigateUri"));
         Assert.AreEqual("RepositoryLink_RequestNavigate", (string?)link.Attribute("RequestNavigate"));
         Assert.IsTrue(link.Ancestors().Contains(Named("SettingsMenuCanvas")));
-        Assert.AreEqual("602", (string?)Named("SettingsMenuCanvas").Attribute("Height"));
+        Assert.AreEqual("794", (string?)Named("SettingsMenuCanvas").Attribute("Height"));
     }
 
     [TestMethod]
@@ -104,6 +119,78 @@ public sealed class UserGuideTests
         Assert.AreEqual("True", (string?)no.Attribute("IsDefault"));
         Assert.AreEqual("True", (string?)no.Attribute("IsCancel"));
         Assert.IsNull(yes.Attribute("IsDefault"));
+    }
+
+    [TestMethod]
+    public void BoatOverlayNestsRelevantBoatsUnderTheActiveRouteOption()
+    {
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var document = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", "MainWindow.xaml"));
+        XElement Named(string name) => document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
+        foreach (var name in new[] { "BoatTimerOverlayCheckBox", "RouteBoatTimersOnlyCheckBox", "BoatTimersOnlyWithRouteCheckBox" })
+        {
+            Assert.AreEqual("BoatTimerSettings_Changed", (string?)Named(name).Attribute("Checked"));
+            Assert.AreEqual("BoatTimerSettings_Changed", (string?)Named(name).Attribute("Unchecked"));
+        }
+        var route = Named("BoatTimersOnlyWithRouteSettingsRow");
+        Assert.AreEqual("{Binding IsChecked, ElementName=BoatTimerOverlayCheckBox}", (string?)route.Attribute("IsEnabled"));
+        Assert.AreEqual("38", (string?)route.Attribute("Canvas.Left"));
+        Assert.AreEqual(Named("SettingsMenuCanvas"), route.Parent);
+        var relevant = Named("RouteBoatTimersSettingsRow");
+        Assert.AreEqual(route, relevant.Parent);
+        Assert.AreEqual("16,0,0,0", (string?)relevant.Attribute("Margin"));
+        Assert.AreEqual("{Binding IsChecked, ElementName=BoatTimersOnlyWithRouteCheckBox}", (string?)relevant.Attribute("IsEnabled"));
+        Assert.IsTrue(route.Descendants().Any(element => (string?)element.Attribute("Text") == "Only show with an active route"));
+        Assert.IsTrue(UserGuide.Topics.Any(topic => topic.Instructions.Contains("Only show with an active route", StringComparison.Ordinal)));
+    }
+
+    [TestMethod]
+    public void BoatTimerControlsStaySeparateFromTheClickThroughBody()
+    {
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var body = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", "BoatTimerWindow.xaml"));
+        Assert.IsFalse(body.Descendants().Any(element => element.Name.LocalName is "Slider" or "Button"));
+        var toolbar = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", "HoverOverlayToolbar.xaml"));
+        var slider = toolbar.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "BackgroundTransparencySlider");
+        Assert.AreEqual("0", (string?)slider.Attribute("Minimum"));
+        Assert.AreEqual("100", (string?)slider.Attribute("Maximum"));
+        Assert.AreEqual("BackgroundTransparency_ValueChanged", (string?)slider.Attribute("ValueChanged"));
+        Assert.AreEqual("DragHandle_MouseLeftButtonDown", (string?)toolbar.Descendants()
+            .Single(element => (string?)element.Attribute(x + "Name") == "DragHandle").Attribute("MouseLeftButtonDown"));
+    }
+
+    [TestMethod]
+    public void ChecklistSettingsMirrorTheNestedActiveRouteOptions()
+    {
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var document = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", "MainWindow.xaml"));
+        XElement Named(string name) => document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
+        foreach (var name in new[] { "ChecklistOverlayCheckBox", "ChecklistOnlyWithRouteCheckBox", "RelevantChecklistOnlyCheckBox" })
+        {
+            Assert.AreEqual("ChecklistSettings_Changed", (string?)Named(name).Attribute("Checked"));
+            Assert.AreEqual("ChecklistSettings_Changed", (string?)Named(name).Attribute("Unchecked"));
+        }
+        var parent = Named("ChecklistOnlyWithRouteSettingsRow");
+        var child = Named("RelevantChecklistSettingsRow");
+        Assert.AreEqual("{Binding IsChecked, ElementName=ChecklistOverlayCheckBox}", (string?)parent.Attribute("IsEnabled"));
+        Assert.AreEqual(parent, child.Parent);
+        Assert.AreEqual("16,0,0,0", (string?)child.Attribute("Margin"));
+        Assert.AreEqual("{Binding IsChecked, ElementName=ChecklistOnlyWithRouteCheckBox}", (string?)child.Attribute("IsEnabled"));
+        var checklist = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", "ChecklistWindow.xaml"));
+        var check = checklist.Descendants().Single(element => element.Name.LocalName == "CheckBox");
+        Assert.AreEqual("{Binding IsChecked, Mode=TwoWay}", (string?)check.Attribute("IsChecked"));
+        Assert.AreEqual("{Binding Indent}", (string?)check.Parent!.Attribute("Margin"));
+        Assert.AreEqual("ChecklistItem_Changed", (string?)check.Attribute("Checked"));
+        Assert.AreEqual("14", (string?)check.Attribute("Width"));
+        Assert.IsFalse(check.Elements().Any(), "Checkbox hit area must not include reminder text.");
+        var reminderText = check.Parent!.Elements().Single(element => element.Name.LocalName == "TextBlock");
+        Assert.AreEqual("ChecklistText_Click", (string?)reminderText.Attribute("MouseLeftButtonDown"));
+        var toolbar = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", "HoverOverlayToolbar.xaml"));
+        var clickThrough = toolbar.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "ClickThroughCheckBox");
+        Assert.AreEqual("ClickThrough_Changed", (string?)clickThrough.Attribute("Checked"));
+        Assert.AreEqual("Toolbar_PreviewMouseLeftButtonDown", (string?)toolbar.Root!.Attribute("PreviewMouseLeftButtonDown"));
+        var minimize = toolbar.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "MinimizeButton");
+        Assert.AreEqual("MinimizeButton_Click", (string?)minimize.Attribute("Click"));
     }
 
     [TestMethod]
@@ -218,6 +305,31 @@ public sealed class UserGuideTests
     }
 
     [TestMethod]
+    public void OverlayManualAndTourExplainCurrentInteractionRules()
+    {
+        var boats = UserGuide.Topics.Single(topic => topic.Title == "23. Boat timer overlay");
+        var checklist = UserGuide.Topics.Single(topic => topic.Title == "24. Departure checklist overlay");
+        foreach (var topic in new[] { boats, checklist })
+        {
+            Assert.AreNotEqual(GuideSurface.Settings, topic.Surface);
+            CollectionAssert.Contains(topic.Targets, "BodyBackground");
+            CollectionAssert.Contains(topic.Targets, "ToolbarBackground");
+            StringAssert.Contains(topic.TourText, "preview");
+            foreach (var phrase in new[] { "active route", "session-only", "Reset Window Positions" })
+                StringAssert.Contains(topic.Instructions, phrase);
+            Assert.IsTrue(topic.Instructions.Contains("double-click", StringComparison.OrdinalIgnoreCase));
+            StringAssert.Contains(topic.TourText, "double-click");
+            StringAssert.Contains(topic.TourText, "minimizes/restores");
+        }
+        foreach (var phrase in new[] { "Bandit Candy", "commerce chest piece", "each configured accessory",
+            "checkbox squares", "successful sale", "CLEAR LOAD", "cover only when used", "William" })
+            StringAssert.Contains(checklist.Instructions, phrase);
+        StringAssert.Contains(checklist.TourText, "Gear checks all equipment");
+        StringAssert.Contains(checklist.TourText, "checkbox squares usable");
+        StringAssert.Contains(boats.Instructions, "not live boat status");
+    }
+
+    [TestMethod]
     public void EveryManualTopicHasConciseTourInstructionsAndValidTargets()
     {
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -227,13 +339,19 @@ public sealed class UserGuideTests
             [GuideSurface.Inventory] = "InventoryWindow.xaml",
             [GuideSurface.Materials] = "BarterMaterialsWindow.xaml",
             [GuideSurface.Settings] = "MainWindow.xaml",
-            [GuideSurface.RouteMap] = "RouteMapWindow.xaml"
+            [GuideSurface.RouteMap] = "RouteMapWindow.xaml",
+            [GuideSurface.BoatTimers] = "BoatTimerWindow.xaml",
+            [GuideSurface.Checklist] = "ChecklistWindow.xaml"
         };
         var targets = files.ToDictionary(pair => pair.Key, pair =>
             XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", pair.Value))
                 .Descendants().Select(element => (string?)element.Attribute(x + "Name")).OfType<string>().ToHashSet());
         targets[GuideSurface.RouteMap].UnionWith(XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", "RouteMapToolbar.xaml"))
             .Descendants().Select(element => (string?)element.Attribute(x + "Name")).OfType<string>());
+        var overlayToolbarTargets = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "GuideTargets", "HoverOverlayToolbar.xaml"))
+            .Descendants().Select(element => (string?)element.Attribute(x + "Name")).OfType<string>().ToArray();
+        targets[GuideSurface.BoatTimers].UnionWith(overlayToolbarTargets);
+        targets[GuideSurface.Checklist].UnionWith(overlayToolbarTargets);
         Assert.AreEqual(UserGuide.Topics.Count, UserGuide.Topics.Select(topic => topic.Title).Distinct().Count());
         foreach (var topic in UserGuide.Topics)
         {
@@ -272,6 +390,11 @@ public sealed class UserGuideTests
             CollectionAssert.AreEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, header.Take(8).ToArray(), topic.Title);
             Assert.IsTrue(System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(16, 4)) >= 80, topic.Title);
             Assert.IsTrue(System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(20, 4)) >= 50, topic.Title);
+            if (topic.Surface is GuideSurface.BoatTimers or GuideSurface.Checklist)
+            {
+                Assert.IsTrue(System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(16, 4)) >= 330, topic.Title);
+                Assert.IsTrue(System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(20, 4)) >= 200, topic.Title);
+            }
         }
     }
 
@@ -292,9 +415,15 @@ public sealed class UserGuideTests
         Assert.AreEqual(GuideSurface.Materials, UserGuide.Topics[18].Surface);
         CollectionAssert.AreEqual(new[] { "ShoppingListButton" }, UserGuide.Topics[20].Targets);
         Assert.AreEqual(GuideSurface.Settings, UserGuide.Topics[21].Surface);
-        Assert.AreEqual("23. Help bubbles", UserGuide.Topics[22].Title);
-        Assert.IsTrue(UserGuide.Topics[22].Targets.Length >= 3);
-        Assert.AreEqual(24, UserGuide.Topics.Count);
+        Assert.AreEqual("23. Boat timer overlay", UserGuide.Topics[22].Title);
+        Assert.AreEqual(GuideSurface.BoatTimers, UserGuide.Topics[22].Surface);
+        CollectionAssert.Contains(UserGuide.Topics[22].Targets, "ToolbarBackground");
+        Assert.AreEqual("24. Departure checklist overlay", UserGuide.Topics[23].Title);
+        Assert.AreEqual(GuideSurface.Checklist, UserGuide.Topics[23].Surface);
+        CollectionAssert.Contains(UserGuide.Topics[23].Targets, "ToolbarBackground");
+        Assert.AreEqual("25. Help bubbles", UserGuide.Topics[24].Title);
+        Assert.IsTrue(UserGuide.Topics[24].Targets.Length >= 3);
+        Assert.AreEqual(26, UserGuide.Topics.Count);
         Assert.AreEqual("7. Enable scanned price sharing", UserGuide.Topics[6].Title);
         Assert.AreEqual(GuideSurface.Settings, UserGuide.Topics[6].Surface);
         CollectionAssert.Contains(UserGuide.Topics[6].Targets, "CommunitySharingCheckBox");
