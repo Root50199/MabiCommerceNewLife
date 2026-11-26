@@ -54,3 +54,6 @@ dotnet test .\CalculatorTests\CalculatorTests.csproj
 ## Credits and license
 
 Inspired by [MabiCommerce](https://github.com/Xcelled/mabicommerce). Route mapping uses ideas and formats from [Mabioned](https://github.com/exectails/Mabioned); OCR uses [Tesseract](https://github.com/tesseract-ocr/tesseract) and its .NET wrapper. The source code is MIT-licensed; see [LICENSE](LICENSE) and [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt). Game artwork and other third-party assets retain their respective rights.
+
+### Support 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/U7F52B2VPK)
